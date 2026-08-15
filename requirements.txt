@@ -1,0 +1,6 @@
+pandas
+numpy
+faker
+neo4j
+python-dotenv
+kafka-python
