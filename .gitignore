@@ -17,4 +17,4 @@ frontend/build/
 *.log
 
 .DS_Store
-Thumbs.db
+Thumbs.dbfraud_alerts.json
