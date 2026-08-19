@@ -18,3 +18,5 @@ frontend/build/
 
 .DS_Store
 Thumbs.dbfraud_alerts.json
+
+fraud_alerts.json
