@@ -1,0 +1,1716 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>FinGraph | Fraud Intelligence Dashboard</title>
+
+    <style>
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg: #07111f;
+            --panel: #0d1b2a;
+            --panel-light: #12263a;
+            --border: #20364d;
+            --text: #f8fafc;
+            --muted: #8fa6bb;
+            --primary: #38bdf8;
+            --primary-dark: #0284c7;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --success: #22c55e;
+            --purple: #a78bfa;
+        }
+
+        body {
+            font-family:
+                Inter,
+                Segoe UI,
+                Arial,
+                sans-serif;
+
+            background:
+                radial-gradient(
+                    circle at top right,
+                    #12304a 0%,
+                    var(--bg) 40%
+                );
+
+            color: var(--text);
+
+            min-height: 100vh;
+        }
+
+
+        /* ==============================
+           Header
+        ============================== */
+
+        header {
+            border-bottom: 1px solid var(--border);
+
+            background:
+                rgba(7, 17, 31, 0.92);
+
+            backdrop-filter: blur(14px);
+
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            max-width: 1500px;
+            margin: auto;
+
+            padding: 20px 32px;
+
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .logo {
+            width: 46px;
+            height: 46px;
+
+            border-radius: 12px;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            font-size: 22px;
+            font-weight: 800;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    var(--primary),
+                    var(--purple)
+                );
+
+            color: #03111d;
+
+            box-shadow:
+                0 8px 30px rgba(56, 189, 248, 0.25);
+        }
+
+        .brand h1 {
+            font-size: 22px;
+            letter-spacing: 0.5px;
+        }
+
+        .brand p {
+            color: var(--muted);
+            font-size: 12px;
+            margin-top: 3px;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+
+            padding: 9px 13px;
+
+            border: 1px solid var(--border);
+            border-radius: 999px;
+
+            color: #b7f7cd;
+
+            background: rgba(34, 197, 94, 0.08);
+
+            font-size: 12px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+
+            border-radius: 50%;
+
+            background: var(--success);
+
+            box-shadow:
+                0 0 12px var(--success);
+        }
+
+        .refresh-btn {
+            border: 1px solid var(--border);
+
+            background: var(--panel);
+
+            color: var(--text);
+
+            padding: 10px 15px;
+
+            border-radius: 9px;
+
+            cursor: pointer;
+
+            transition: 0.2s;
+        }
+
+        .refresh-btn:hover {
+            background: var(--panel-light);
+            border-color: var(--primary);
+        }
+
+
+        /* ==============================
+           Main
+        ============================== */
+
+        .container {
+            max-width: 1500px;
+
+            margin: auto;
+
+            padding: 32px;
+        }
+
+        .page-title {
+            margin-bottom: 28px;
+        }
+
+        .page-title h2 {
+            font-size: 30px;
+            margin-bottom: 7px;
+        }
+
+        .page-title p {
+            color: var(--muted);
+            font-size: 14px;
+        }
+
+
+        /* ==============================
+           Statistics
+        ============================== */
+
+        .stats-grid {
+            display: grid;
+
+            grid-template-columns:
+                repeat(4, 1fr);
+
+            gap: 18px;
+
+            margin-bottom: 25px;
+        }
+
+        .stat-card {
+            position: relative;
+
+            overflow: hidden;
+
+            background:
+                linear-gradient(
+                    145deg,
+                    rgba(18, 38, 58, 0.95),
+                    rgba(10, 26, 43, 0.95)
+                );
+
+            border: 1px solid var(--border);
+
+            border-radius: 16px;
+
+            padding: 23px;
+
+            transition:
+                transform 0.2s,
+                border-color 0.2s;
+
+            box-shadow:
+                0 12px 35px rgba(0, 0, 0, 0.15);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-3px);
+            border-color: #315b78;
+        }
+
+        .stat-card::after {
+            content: "";
+
+            position: absolute;
+
+            width: 110px;
+            height: 110px;
+
+            right: -45px;
+            top: -45px;
+
+            border-radius: 50%;
+
+            background:
+                rgba(56, 189, 248, 0.07);
+        }
+
+        .stat-label {
+            color: var(--muted);
+
+            font-size: 12px;
+
+            text-transform: uppercase;
+
+            letter-spacing: 0.8px;
+
+            margin-bottom: 12px;
+        }
+
+        .stat-value {
+            font-size: 30px;
+
+            font-weight: 750;
+
+            letter-spacing: -0.5px;
+        }
+
+        .stat-icon {
+            margin-bottom: 13px;
+
+            font-size: 20px;
+        }
+
+        .stat-blue .stat-icon {
+            color: var(--primary);
+        }
+
+        .stat-red .stat-icon {
+            color: var(--danger);
+        }
+
+        .stat-orange .stat-icon {
+            color: var(--warning);
+        }
+
+        .stat-purple .stat-icon {
+            color: var(--purple);
+        }
+
+
+        /* ==============================
+           Section
+        ============================== */
+
+        .section {
+            background:
+                rgba(13, 27, 42, 0.9);
+
+            border: 1px solid var(--border);
+
+            border-radius: 16px;
+
+            margin-bottom: 25px;
+
+            overflow: hidden;
+
+            box-shadow:
+                0 12px 35px rgba(0, 0, 0, 0.14);
+        }
+
+        .section-header {
+            padding: 20px 22px;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: space-between;
+
+            gap: 15px;
+
+            border-bottom: 1px solid var(--border);
+        }
+
+        .section-title {
+            display: flex;
+
+            align-items: center;
+
+            gap: 10px;
+        }
+
+        .section-title h3 {
+            font-size: 17px;
+        }
+
+        .section-title span {
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .section-body {
+            padding: 0;
+        }
+
+
+        /* ==============================
+           Alert Banner
+        ============================== */
+
+        .alert-banner {
+            display: none;
+
+            margin-bottom: 25px;
+
+            padding: 17px 20px;
+
+            border-radius: 14px;
+
+            border: 1px solid
+                rgba(239, 68, 68, 0.35);
+
+            background:
+                rgba(239, 68, 68, 0.08);
+
+            color: #fecaca;
+        }
+
+        .alert-banner strong {
+            color: #f87171;
+        }
+
+
+        /* ==============================
+           Search
+        ============================== */
+
+        .search-box {
+            width: 250px;
+
+            padding: 9px 12px;
+
+            border-radius: 8px;
+
+            border: 1px solid var(--border);
+
+            background: #091827;
+
+            color: white;
+
+            outline: none;
+        }
+
+        .search-box:focus {
+            border-color: var(--primary);
+        }
+
+
+        /* ==============================
+           Tables
+        ============================== */
+
+        .table-wrapper {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+
+            border-collapse: collapse;
+
+            min-width: 700px;
+        }
+
+        th {
+            color: #8ea7bd;
+
+            background: #0a1726;
+
+            font-size: 11px;
+
+            text-transform: uppercase;
+
+            letter-spacing: 0.7px;
+
+            font-weight: 600;
+
+            text-align: left;
+
+            padding: 14px 18px;
+
+            white-space: nowrap;
+        }
+
+        td {
+            padding: 15px 18px;
+
+            border-top: 1px solid
+                rgba(32, 54, 77, 0.65);
+
+            color: #dbe7f2;
+
+            font-size: 13px;
+
+            white-space: nowrap;
+        }
+
+        tbody tr {
+            transition: background 0.15s;
+        }
+
+        tbody tr:hover {
+            background:
+                rgba(56, 189, 248, 0.045);
+        }
+
+
+        /* ==============================
+           Risk Badges
+        ============================== */
+
+        .badge {
+            display: inline-flex;
+
+            align-items: center;
+
+            padding: 5px 9px;
+
+            border-radius: 999px;
+
+            font-size: 10px;
+
+            font-weight: 800;
+
+            letter-spacing: 0.5px;
+        }
+
+        .critical {
+            color: #fecaca;
+
+            background:
+                rgba(239, 68, 68, 0.14);
+
+            border: 1px solid
+                rgba(239, 68, 68, 0.25);
+        }
+
+        .high {
+            color: #fed7aa;
+
+            background:
+                rgba(249, 115, 22, 0.14);
+
+            border: 1px solid
+                rgba(249, 115, 22, 0.25);
+        }
+
+        .medium {
+            color: #fde68a;
+
+            background:
+                rgba(245, 158, 11, 0.14);
+
+            border: 1px solid
+                rgba(245, 158, 11, 0.25);
+        }
+
+        .low {
+            color: #bbf7d0;
+
+            background:
+                rgba(34, 197, 94, 0.12);
+
+            border: 1px solid
+                rgba(34, 197, 94, 0.22);
+        }
+
+
+        /* ==============================
+           Score
+        ============================== */
+
+        .score {
+            font-weight: 750;
+
+            color: #f8fafc;
+        }
+
+
+        /* ==============================
+           Footer
+        ============================== */
+
+        footer {
+            text-align: center;
+
+            color: #60788d;
+
+            font-size: 11px;
+
+            padding: 20px;
+        }
+
+
+        /* ==============================
+           Loading
+        ============================== */
+
+        .loading {
+            color: var(--muted);
+
+            text-align: center;
+
+            padding: 30px;
+        }
+
+
+        /* ==============================
+           Responsive
+        ============================== */
+
+        @media (max-width: 1100px) {
+
+            .stats-grid {
+                grid-template-columns:
+                    repeat(2, 1fr);
+            }
+
+        }
+
+        @media (max-width: 700px) {
+
+            .container {
+                padding: 18px;
+            }
+
+            .header-content {
+                padding: 16px 18px;
+            }
+
+            .header-actions {
+                display: none;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .page-title h2 {
+                font-size: 24px;
+            }
+
+            .section-header {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            .search-box {
+                width: 100%;
+            }
+
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+
+<!-- =========================================
+     HEADER
+========================================= -->
+
+<header>
+
+    <div class="header-content">
+
+        <div class="brand">
+
+            <div class="logo">
+                FG
+            </div>
+
+            <div>
+
+                <h1>FinGraph</h1>
+
+                <p>
+                    Graph-Based Financial Fraud Intelligence
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="header-actions">
+
+            <div class="status">
+
+                <span class="status-dot"></span>
+
+                <span id="connectionStatus">
+                    API Connected
+                </span>
+
+            </div>
+
+            <button
+                class="refresh-btn"
+                onclick="loadDashboard()"
+            >
+                ↻ Refresh
+            </button>
+
+        </div>
+
+    </div>
+
+</header>
+
+
+<!-- =========================================
+     MAIN
+========================================= -->
+
+<main class="container">
+
+
+    <div class="page-title">
+
+        <h2>Fraud Intelligence Dashboard</h2>
+
+        <p>
+            Real-time monitoring of suspicious transactions,
+            fraud hubs and high-risk accounts.
+        </p>
+
+    </div>
+
+
+    <!-- Alert Banner -->
+
+    <div
+        class="alert-banner"
+        id="alertBanner"
+    >
+
+        🚨
+        <strong id="alertCount">
+            0
+        </strong>
+
+        high-risk fraud alerts detected.
+
+    </div>
+
+
+    <!-- ======================================
+         STATISTICS
+    ======================================= -->
+
+    <div class="stats-grid">
+
+
+        <div class="stat-card stat-blue">
+
+            <div class="stat-icon">
+                ◈
+            </div>
+
+            <div class="stat-label">
+                Total Transactions
+            </div>
+
+            <div
+                class="stat-value"
+                id="totalTransactions"
+            >
+                —
+            </div>
+
+        </div>
+
+
+        <div class="stat-card stat-red">
+
+            <div class="stat-icon">
+                ⚠
+            </div>
+
+            <div class="stat-label">
+                Fraud Transactions
+            </div>
+
+            <div
+                class="stat-value"
+                id="fraudTransactions"
+            >
+                —
+            </div>
+
+        </div>
+
+
+        <div class="stat-card stat-orange">
+
+            <div class="stat-icon">
+                %
+            </div>
+
+            <div class="stat-label">
+                Fraud Percentage
+            </div>
+
+            <div
+                class="stat-value"
+                id="fraudPercentage"
+            >
+                —
+            </div>
+
+        </div>
+
+
+        <div class="stat-card stat-purple">
+
+            <div class="stat-icon">
+                ₹
+            </div>
+
+            <div class="stat-label">
+                Total Fraud Amount
+            </div>
+
+            <div
+                class="stat-value"
+                id="fraudAmount"
+            >
+                —
+            </div>
+
+        </div>
+
+
+    </div>
+
+
+    <!-- ======================================
+         FRAUD ALERTS
+    ======================================= -->
+
+    <section class="section">
+
+
+        <div class="section-header">
+
+            <div class="section-title">
+
+                <h3>
+                    🚨 Fraud Alerts
+                </h3>
+
+                <span>
+                    High-risk accounts
+                </span>
+
+            </div>
+
+
+            <input
+                type="text"
+                id="alertSearch"
+                class="search-box"
+                placeholder="Search account..."
+                oninput="filterAlerts()"
+            >
+
+        </div>
+
+
+        <div class="table-wrapper">
+
+            <table>
+
+                <thead>
+
+                    <tr>
+
+                        <th>
+                            Account
+                        </th>
+
+                        <th>
+                            Receivers
+                        </th>
+
+                        <th>
+                            Fraud Transactions
+                        </th>
+
+                        <th>
+                            Fraud Amount
+                        </th>
+
+                        <th>
+                            Risk Score
+                        </th>
+
+                        <th>
+                            Severity
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody id="alertTable">
+
+                    <tr>
+
+                        <td
+                            colspan="6"
+                            class="loading"
+                        >
+                            Loading alerts...
+                        </td>
+
+                    </tr>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+
+    <!-- ======================================
+         RISK ACCOUNTS
+    ======================================= -->
+
+    <section class="section">
+
+
+        <div class="section-header">
+
+            <div class="section-title">
+
+                <h3>
+                    🎯 Highest Risk Accounts
+                </h3>
+
+                <span>
+                    Graph-based risk scoring
+                </span>
+
+            </div>
+
+        </div>
+
+
+        <div class="table-wrapper">
+
+            <table>
+
+                <thead>
+
+                    <tr>
+
+                        <th>
+                            Account
+                        </th>
+
+                        <th>
+                            Fraud Transactions
+                        </th>
+
+                        <th>
+                            Fraud Amount
+                        </th>
+
+                        <th>
+                            Risk Score
+                        </th>
+
+                        <th>
+                            Category
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody id="riskTable">
+
+                    <tr>
+
+                        <td
+                            colspan="5"
+                            class="loading"
+                        >
+                            Loading risk accounts...
+                        </td>
+
+                    </tr>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+
+    <!-- ======================================
+         FRAUD HUBS
+    ======================================= -->
+
+    <section class="section">
+
+
+        <div class="section-header">
+
+            <div class="section-title">
+
+                <h3>
+                    🕸 Fraud Hubs
+                </h3>
+
+                <span>
+                    Suspicious receiving accounts
+                </span>
+
+            </div>
+
+        </div>
+
+
+        <div class="table-wrapper">
+
+            <table>
+
+                <thead>
+
+                    <tr>
+
+                        <th>
+                            Fraud Hub
+                        </th>
+
+                        <th>
+                            Unique Senders
+                        </th>
+
+                        <th>
+                            Fraud Transactions
+                        </th>
+
+                        <th>
+                            Total Fraud Amount
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody id="hubTable">
+
+                    <tr>
+
+                        <td
+                            colspan="4"
+                            class="loading"
+                        >
+                            Loading fraud hubs...
+                        </td>
+
+                    </tr>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+
+    <!-- ======================================
+         FRAUD TRANSACTIONS
+    ======================================= -->
+
+    <section class="section">
+
+
+        <div class="section-header">
+
+            <div class="section-title">
+
+                <h3>
+                    💳 Fraud Transactions
+                </h3>
+
+                <span>
+                    Highest-value suspicious activity
+                </span>
+
+            </div>
+
+        </div>
+
+
+        <div class="table-wrapper">
+
+            <table>
+
+                <thead>
+
+                    <tr>
+
+                        <th>
+                            Transaction ID
+                        </th>
+
+                        <th>
+                            Sender
+                        </th>
+
+                        <th>
+                            Receiver
+                        </th>
+
+                        <th>
+                            Amount
+                        </th>
+
+                        <th>
+                            Country
+                        </th>
+
+                        <th>
+                            Pattern
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody id="fraudTable">
+
+                    <tr>
+
+                        <td
+                            colspan="6"
+                            class="loading"
+                        >
+                            Loading transactions...
+                        </td>
+
+                    </tr>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+
+</main>
+
+
+<!-- =========================================
+     FOOTER
+========================================= -->
+
+<footer>
+
+    FinGraph Fraud Intelligence Platform
+    &nbsp;•&nbsp;
+    Powered by Kafka, Flink, Neo4j & FastAPI
+
+    <br>
+
+    <span id="lastUpdated">
+        Last updated: —
+    </span>
+
+</footer>
+
+
+<script>
+
+
+// ==========================================
+// API
+// ==========================================
+
+const API = "http://127.0.0.1:8000";
+
+
+// ==========================================
+// Store Alerts
+// ==========================================
+
+let allAlerts = [];
+
+
+// ==========================================
+// Helper
+// ==========================================
+
+function formatCurrency(value) {
+
+    return "₹" +
+        Number(value || 0).toLocaleString(
+            "en-IN",
+            {
+                maximumFractionDigits: 2
+            }
+        );
+
+}
+
+
+function categoryBadge(category) {
+
+    const value =
+        String(category || "LOW")
+        .toUpperCase();
+
+    const cssClass =
+        value.toLowerCase();
+
+    return `
+        <span class="badge ${cssClass}">
+            ${value}
+        </span>
+    `;
+
+}
+
+
+// ==========================================
+// Statistics
+// ==========================================
+
+async function loadStatistics() {
+
+    const response =
+        await fetch(`${API}/statistics`);
+
+    if (!response.ok) {
+        throw new Error(
+            "Statistics API failed"
+        );
+    }
+
+    const data =
+        await response.json();
+
+
+    document.getElementById(
+        "totalTransactions"
+    ).textContent =
+        data.total_transactions;
+
+
+    document.getElementById(
+        "fraudTransactions"
+    ).textContent =
+        data.fraud_transactions;
+
+
+    document.getElementById(
+        "fraudPercentage"
+    ).textContent =
+        data.fraud_percentage + "%";
+
+
+    document.getElementById(
+        "fraudAmount"
+    ).textContent =
+        formatCurrency(
+            data.total_fraud_amount
+        );
+
+}
+
+
+// ==========================================
+// Fraud Alerts
+// ==========================================
+
+async function loadAlerts() {
+
+    const response =
+        await fetch(`${API}/alerts`);
+
+    if (!response.ok) {
+        throw new Error(
+            "Alerts API failed"
+        );
+    }
+
+    const data =
+        await response.json();
+
+    allAlerts =
+        data.alerts || [];
+
+
+    document.getElementById(
+        "alertCount"
+    ).textContent =
+        data.count || 0;
+
+
+    if (data.count > 0) {
+
+        document.getElementById(
+            "alertBanner"
+        ).style.display =
+            "block";
+
+    }
+
+
+    renderAlerts(
+        allAlerts
+    );
+
+}
+
+
+function renderAlerts(alerts) {
+
+    const table =
+        document.getElementById(
+            "alertTable"
+        );
+
+    table.innerHTML = "";
+
+
+    if (!alerts.length) {
+
+        table.innerHTML = `
+            <tr>
+                <td
+                    colspan="6"
+                    class="loading"
+                >
+                    No alerts found
+                </td>
+            </tr>
+        `;
+
+        return;
+    }
+
+
+    alerts.forEach(alert => {
+
+        const row =
+            document.createElement("tr");
+
+
+        row.innerHTML = `
+
+            <td>
+                <strong>
+                    ${alert.account}
+                </strong>
+            </td>
+
+            <td>
+                ${(alert.receivers || []).join(", ")}
+            </td>
+
+            <td>
+                ${alert.fraud_transactions}
+            </td>
+
+            <td>
+                ${formatCurrency(
+                    alert.total_fraud_amount
+                )}
+            </td>
+
+            <td class="score">
+                ${alert.risk_score}
+            </td>
+
+            <td>
+                ${categoryBadge(
+                    alert.risk_category
+                )}
+            </td>
+
+        `;
+
+
+        table.appendChild(row);
+
+    });
+
+}
+
+
+// ==========================================
+// Search Alerts
+// ==========================================
+
+function filterAlerts() {
+
+    const search =
+        document.getElementById(
+            "alertSearch"
+        ).value
+        .toLowerCase();
+
+
+    const filtered =
+        allAlerts.filter(
+            alert =>
+                String(
+                    alert.account
+                )
+                .toLowerCase()
+                .includes(search)
+        );
+
+
+    renderAlerts(
+        filtered
+    );
+
+}
+
+
+// ==========================================
+// Risk Accounts
+// ==========================================
+
+async function loadRiskAccounts() {
+
+    const response =
+        await fetch(
+            `${API}/risk-accounts`
+        );
+
+    if (!response.ok) {
+        throw new Error(
+            "Risk accounts API failed"
+        );
+    }
+
+    const data =
+        await response.json();
+
+
+    const table =
+        document.getElementById(
+            "riskTable"
+        );
+
+    table.innerHTML = "";
+
+
+    data.forEach(account => {
+
+        const row =
+            document.createElement("tr");
+
+
+        row.innerHTML = `
+
+            <td>
+                <strong>
+                    ${account.account}
+                </strong>
+            </td>
+
+            <td>
+                ${account.fraud_transactions}
+            </td>
+
+            <td>
+                ${formatCurrency(
+                    account.total_fraud_amount
+                )}
+            </td>
+
+            <td class="score">
+                ${account.risk_score}
+            </td>
+
+            <td>
+                ${categoryBadge(
+                    account.risk_category
+                )}
+            </td>
+
+        `;
+
+
+        table.appendChild(row);
+
+    });
+
+}
+
+
+// ==========================================
+// Fraud Hubs
+// ==========================================
+
+async function loadFraudHubs() {
+
+    const response =
+        await fetch(
+            `${API}/fraud-hubs`
+        );
+
+    if (!response.ok) {
+        throw new Error(
+            "Fraud hubs API failed"
+        );
+    }
+
+    const data =
+        await response.json();
+
+
+    const table =
+        document.getElementById(
+            "hubTable"
+        );
+
+    table.innerHTML = "";
+
+
+    data.forEach(hub => {
+
+        const row =
+            document.createElement("tr");
+
+
+        row.innerHTML = `
+
+            <td>
+                <strong>
+                    ${hub.fraud_hub}
+                </strong>
+            </td>
+
+            <td>
+                ${hub.unique_senders}
+            </td>
+
+            <td>
+                ${hub.fraud_transactions}
+            </td>
+
+            <td>
+                ${formatCurrency(
+                    hub.total_fraud_amount
+                )}
+            </td>
+
+        `;
+
+
+        table.appendChild(row);
+
+    });
+
+}
+
+
+// ==========================================
+// Fraud Transactions
+// ==========================================
+
+async function loadFraudTransactions() {
+
+    const response =
+        await fetch(
+            `${API}/fraud`
+        );
+
+    if (!response.ok) {
+        throw new Error(
+            "Fraud transactions API failed"
+        );
+    }
+
+    const data =
+        await response.json();
+
+
+    const table =
+        document.getElementById(
+            "fraudTable"
+        );
+
+    table.innerHTML = "";
+
+
+    const transactions =
+        data.transactions || [];
+
+
+    transactions
+        .slice(0, 20)
+        .forEach(transaction => {
+
+            const row =
+                document.createElement(
+                    "tr"
+                );
+
+
+            row.innerHTML = `
+
+                <td>
+                    ${transaction.transaction_id}
+                </td>
+
+                <td>
+                    ${transaction.sender}
+                </td>
+
+                <td>
+                    ${transaction.receiver}
+                </td>
+
+                <td>
+                    ${formatCurrency(
+                        transaction.amount
+                    )}
+                </td>
+
+                <td>
+                    ${transaction.country || "—"}
+                </td>
+
+                <td>
+                    ${transaction.fraud_pattern || "—"}
+                </td>
+
+            `;
+
+
+            table.appendChild(row);
+
+        });
+
+}
+
+
+// ==========================================
+// Dashboard Loader
+// ==========================================
+
+async function loadDashboard() {
+
+    const status =
+        document.getElementById(
+            "connectionStatus"
+        );
+
+
+    try {
+
+        status.textContent =
+            "Connecting...";
+
+
+        await loadStatistics();
+
+        await loadAlerts();
+
+        await loadRiskAccounts();
+
+        await loadFraudHubs();
+
+        await loadFraudTransactions();
+
+
+        status.textContent =
+            "API Connected";
+
+
+        document.getElementById(
+            "lastUpdated"
+        ).textContent =
+            "Last updated: " +
+            new Date().toLocaleString();
+
+
+    } catch (error) {
+
+        console.error(
+            "FinGraph API Error:",
+            error
+        );
+
+
+        status.textContent =
+            "API Disconnected";
+
+
+        document.getElementById(
+            "connectionStatus"
+        ).style.color =
+            "#f87171";
+
+    }
+
+}
+
+
+// ==========================================
+// Start Dashboard
+// ==========================================
+
+loadDashboard();
+
+
+</script>
+
+
+</body>
+
+</html>
