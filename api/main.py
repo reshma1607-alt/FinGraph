@@ -9,24 +9,24 @@ from neo4j import GraphDatabase
 # Configuration
 # ======================================
 
-URI = "bolt://localhost:7687"
+URI = "bolt://127.0.0.1:7687"
 USERNAME = "neo4j"
 PASSWORD = os.getenv("NEO4J_PASSWORD")
 
 
 # ======================================
-# FastAPI Application
+# FastAPI
 # ======================================
 
 app = FastAPI(
     title="FinGraph Fraud Detection API",
-    description="API for FinGraph Neo4j fraud analysis",
+    description="Graph-Based Financial Fraud Intelligence API",
     version="1.0.0"
 )
 
 
 # ======================================
-# CORS Configuration
+# CORS
 # ======================================
 
 app.add_middleware(
@@ -34,12 +34,12 @@ app.add_middleware(
     allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
-    allow_headers=["*"],
+    allow_headers=["*"]
 )
 
 
 # ======================================
-# Neo4j Connection
+# Neo4j Driver
 # ======================================
 
 driver = None
@@ -52,7 +52,7 @@ if PASSWORD:
 
 
 # ======================================
-# Health Check
+# HOME
 # ======================================
 
 @app.get("/")
@@ -66,7 +66,7 @@ def home():
 
 
 # ======================================
-# Statistics
+# STATISTICS
 # ======================================
 
 @app.get("/statistics")
@@ -103,15 +103,15 @@ def statistics():
 
         record = session.run(query).single()
 
-        total = record["total_transactions"]
-        fraud = record["fraud_transactions"]
+        total = record["total_transactions"] or 0
+        fraud = record["fraud_transactions"] or 0
         amount = record["total_fraud_amount"] or 0
 
         percentage = 0
 
-        if total:
+        if total > 0:
             percentage = round(
-                (fraud * 100.0) / total,
+                fraud * 100 / total,
                 2
             )
 
@@ -127,7 +127,7 @@ def statistics():
 
 
 # ======================================
-# Fraud Transactions
+# FRAUD TRANSACTIONS
 # ======================================
 
 @app.get("/fraud")
@@ -169,7 +169,7 @@ def fraud_transactions():
                 "sender": record["sender"],
                 "receiver": record["receiver"],
                 "amount": round(
-                    float(record["amount"]),
+                    float(record["amount"] or 0),
                     2
                 ),
                 "country": record["country"],
@@ -183,7 +183,7 @@ def fraud_transactions():
 
 
 # ======================================
-# Fraud Hubs
+# FRAUD HUBS
 # ======================================
 
 @app.get("/fraud-hubs")
@@ -229,7 +229,7 @@ def fraud_hubs():
                 "unique_senders": record["unique_senders"],
                 "fraud_transactions": record["fraud_transactions"],
                 "total_fraud_amount": round(
-                    float(record["total_fraud_amount"]),
+                    float(record["total_fraud_amount"] or 0),
                     2
                 )
             })
@@ -238,7 +238,7 @@ def fraud_hubs():
 
 
 # ======================================
-# Risk Accounts
+# RISK ACCOUNTS
 # ======================================
 
 @app.get("/risk-accounts")
@@ -301,24 +301,135 @@ def risk_accounts():
 
             data.append({
                 "account": record["account"],
-                "connected_receivers": record["connected_receivers"],
-                "fraud_transactions": record["fraud_transactions"],
-                "total_fraud_amount": round(
-                    float(record["total_fraud_amount"]),
-                    2
-                ),
-                "risk_score": round(
-                    float(record["risk_score"]),
-                    2
-                ),
-                "risk_category": record["risk_category"]
+                "connected_receivers":
+                    record["connected_receivers"],
+                "fraud_transactions":
+                    record["fraud_transactions"],
+                "total_fraud_amount":
+                    round(
+                        float(
+                            record["total_fraud_amount"] or 0
+                        ),
+                        2
+                    ),
+                "risk_score":
+                    round(
+                        float(
+                            record["risk_score"] or 0
+                        ),
+                        2
+                    ),
+                "risk_category":
+                    record["risk_category"]
             })
 
         return data
 
 
 # ======================================
-# Fraud Alerts
+# ACCOUNT DETAILS
+# ======================================
+
+@app.get("/account/{account_id}")
+def account_details(account_id: str):
+
+    if driver is None:
+        return {
+            "error": "NEO4J_PASSWORD environment variable is not set"
+        }
+
+    query = """
+    MATCH (s:Account {id: $account_id})
+
+    OPTIONAL MATCH
+        (s)-[:SENT]->(t:Transaction)-[:RECEIVED_BY]->(r:Account)
+
+    WITH
+        s,
+        collect({
+            transaction_id: t.id,
+            receiver: r.id,
+            amount: t.amount,
+            fraud_status: t.fraud_status,
+            fraud_pattern: t.fraud_pattern
+        }) AS transactions
+
+    RETURN
+        s.id AS account,
+        transactions
+    """
+
+    with driver.session() as session:
+
+        record = session.run(
+            query,
+            account_id=account_id
+        ).single()
+
+        if record is None:
+
+            return {
+                "error": "Account not found",
+                "account": account_id
+            }
+
+        transactions = []
+
+        for transaction in record["transactions"]:
+
+            if transaction["transaction_id"] is not None:
+
+                transactions.append({
+                    "transaction_id":
+                        transaction["transaction_id"],
+
+                    "receiver":
+                        transaction["receiver"],
+
+                    "amount":
+                        round(
+                            float(
+                                transaction["amount"] or 0
+                            ),
+                            2
+                        ),
+
+                    "fraud_status":
+                        transaction["fraud_status"],
+
+                    "fraud_pattern":
+                        transaction["fraud_pattern"]
+                })
+
+        fraud_transactions = [
+            transaction
+            for transaction in transactions
+            if transaction["fraud_status"] == "FRAUD"
+        ]
+
+        total_fraud_amount = sum(
+            transaction["amount"]
+            for transaction in fraud_transactions
+        )
+
+        return {
+            "account": record["account"],
+            "total_transactions":
+                len(transactions),
+            "fraud_transactions":
+                len(fraud_transactions),
+            "total_fraud_amount":
+                round(
+                    total_fraud_amount,
+                    2
+                ),
+            "transactions":
+                transactions
+        }
+
+
+# ======================================
+# FRAUD ALERTS
 # ======================================
 
 @app.get("/alerts")
@@ -390,18 +501,35 @@ def alerts():
         for record in result:
 
             data.append({
-                "account": record["account"],
-                "receivers": record["receivers"],
-                "fraud_transactions": record["fraud_transactions"],
-                "total_fraud_amount": round(
-                    float(record["total_fraud_amount"]),
-                    2
-                ),
-                "risk_score": round(
-                    float(record["risk_score"]),
-                    2
-                ),
-                "risk_category": record["risk_category"]
+                "account":
+                    record["account"],
+
+                "receivers":
+                    record["receivers"],
+
+                "fraud_transactions":
+                    record["fraud_transactions"],
+
+                "total_fraud_amount":
+                    round(
+                        float(
+                            record[
+                                "total_fraud_amount"
+                            ] or 0
+                        ),
+                        2
+                    ),
+
+                "risk_score":
+                    round(
+                        float(
+                            record["risk_score"] or 0
+                        ),
+                        2
+                    ),
+
+                "risk_category":
+                    record["risk_category"]
             })
 
         return {
@@ -411,7 +539,150 @@ def alerts():
 
 
 # ======================================
-# Shutdown
+# FRAUD NETWORK
+# ======================================
+
+@app.get("/fraud-network")
+def fraud_network():
+
+    if driver is None:
+        return {
+            "error": "NEO4J_PASSWORD environment variable is not set"
+        }
+
+    query = """
+    MATCH (s:Account)-[:SENT]->(t:Transaction)-[:RECEIVED_BY]->(r:Account)
+
+    WHERE t.fraud_status = 'FRAUD'
+
+    RETURN
+        s.id AS sender,
+        t.id AS transaction,
+        r.id AS receiver,
+        t.amount AS amount,
+        t.fraud_pattern AS fraud_pattern
+
+    ORDER BY t.amount DESC
+
+    LIMIT 100
+    """
+
+    with driver.session() as session:
+
+        result = session.run(query)
+
+        nodes = {}
+        edges = []
+
+        for record in result:
+
+            sender = record["sender"]
+            transaction = record["transaction"]
+            receiver = record["receiver"]
+
+            amount = float(
+                record["amount"] or 0
+            )
+
+            if sender not in nodes:
+
+                nodes[sender] = {
+                    "id": sender,
+                    "label": sender,
+                    "type": "ACCOUNT"
+                }
+
+            if transaction not in nodes:
+
+                nodes[transaction] = {
+                    "id": transaction,
+                    "label": transaction,
+                    "type": "TRANSACTION"
+                }
+
+            if receiver not in nodes:
+
+                nodes[receiver] = {
+                    "id": receiver,
+                    "label": receiver,
+                    "type": "ACCOUNT"
+                }
+
+            edges.append({
+                "source": sender,
+                "target": transaction,
+                "relationship": "SENT",
+                "amount": amount
+            })
+
+            edges.append({
+                "source": transaction,
+                "target": receiver,
+                "relationship": "RECEIVED_BY",
+                "amount": amount
+            })
+
+        return {
+            "nodes": list(nodes.values()),
+            "edges": edges
+        }
+
+# ======================================
+# FRAUD PATTERN ANALYSIS
+# ======================================
+
+@app.get("/fraud-patterns")
+def fraud_patterns():
+
+    if driver is None:
+        return {
+            "error": "NEO4J_PASSWORD environment variable is not set"
+        }
+
+    query = """
+    MATCH (t:Transaction)
+
+    WHERE t.fraud_status = 'FRAUD'
+
+    WITH
+        coalesce(t.fraud_pattern, 'Unknown') AS pattern,
+        count(t) AS transaction_count,
+        sum(t.amount) AS total_amount
+
+    RETURN
+        pattern,
+        transaction_count,
+        total_amount
+
+    ORDER BY transaction_count DESC
+    """
+
+    with driver.session() as session:
+
+        result = session.run(query)
+
+        data = []
+
+        for record in result:
+
+            data.append({
+                "pattern": record["pattern"],
+                "transaction_count":
+                    record["transaction_count"],
+                "total_amount":
+                    round(
+                        float(
+                            record["total_amount"] or 0
+                        ),
+                        2
+                    )
+            })
+
+        return {
+            "patterns": data
+        }
+# ======================================
+# SHUTDOWN
 # ======================================
 
 @app.on_event("shutdown")
