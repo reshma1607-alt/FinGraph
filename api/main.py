@@ -1,653 +1,807 @@
-import os
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from neo4j import GraphDatabase
+import os
+from typing import Optional
 
-
-# ======================================
-# Configuration
-# ======================================
-
-URI = "bolt://127.0.0.1:7687"
-USERNAME = "neo4j"
-PASSWORD = os.getenv("NEO4J_PASSWORD")
-
-
-# ======================================
-# FastAPI
-# ======================================
+# ==========================================
+# FINGRAPH - FRAUD INTELLIGENCE BACKEND
+# ==========================================
 
 app = FastAPI(
-    title="FinGraph Fraud Detection API",
-    description="Graph-Based Financial Fraud Intelligence API",
+    title="FinGraph Fraud Intelligence API",
     version="1.0.0"
 )
 
-
-# ======================================
+# ==========================================
 # CORS
-# ======================================
+# ==========================================
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
-    allow_headers=["*"]
+    allow_headers=["*"],
 )
 
+# ==========================================
+# NEO4J CONFIGURATION
+# ==========================================
 
-# ======================================
-# Neo4j Driver
-# ======================================
+NEO4J_URI = os.getenv(
+    "NEO4J_URI",
+    "bolt://localhost:7687"
+)
+
+NEO4J_USER = os.getenv(
+    "NEO4J_USER",
+    "neo4j"
+)
+
+NEO4J_PASSWORD = os.getenv(
+    "NEO4J_PASSWORD"
+)
 
 driver = None
 
-if PASSWORD:
-    driver = GraphDatabase.driver(
-        URI,
-        auth=(USERNAME, PASSWORD)
-    )
+if NEO4J_PASSWORD:
+    try:
+        driver = GraphDatabase.driver(
+            NEO4J_URI,
+            auth=(NEO4J_USER, NEO4J_PASSWORD)
+        )
+    except Exception:
+        driver = None
 
 
-# ======================================
-# HOME
-# ======================================
+# ==========================================
+# HELPERS
+# ==========================================
 
-@app.get("/")
-def home():
-
+def neo4j_error():
     return {
-        "project": "FinGraph",
-        "status": "running",
-        "service": "Fraud Detection API"
+        "error": (
+            "Neo4j connection is not available. "
+            "Check NEO4J_URI, NEO4J_USER, "
+            "NEO4J_PASSWORD and make sure Neo4j "
+            "is running on port 7687."
+        )
     }
 
 
-# ======================================
+def run_query(query, parameters=None):
+    if driver is None:
+        return None
+
+    with driver.session() as session:
+        return list(
+            session.run(
+                query,
+                parameters or {}
+            )
+        )
+
+
+def safe_float(value):
+    try:
+        return round(float(value or 0), 2)
+    except (TypeError, ValueError):
+        return 0.0
+
+
+# ==========================================
+# ROOT / HEALTH
+# ==========================================
+
+@app.get("/")
+def root():
+    return {
+        "name": "FinGraph",
+        "status": "running",
+        "service": "Fraud Intelligence API"
+    }
+
+
+@app.get("/health")
+def health():
+    if driver is None:
+        return {
+            "status": "error",
+            "neo4j": "disconnected"
+        }
+
+    try:
+        with driver.session() as session:
+            session.run("RETURN 1").single()
+
+        return {
+            "status": "ok",
+            "neo4j": "connected"
+        }
+
+    except Exception as error:
+        return {
+            "status": "error",
+            "neo4j": "disconnected",
+            "message": str(error)
+        }
+
+
+# ==========================================
 # STATISTICS
-# ======================================
+# ==========================================
 
 @app.get("/statistics")
 def statistics():
 
     if driver is None:
-        return {
-            "error": "NEO4J_PASSWORD environment variable is not set"
-        }
+        return neo4j_error()
 
     query = """
     MATCH (t:Transaction)
 
-    RETURN
+    WITH
         count(t) AS total_transactions,
-
-        count(
-            CASE
-                WHEN t.fraud_status = 'FRAUD'
-                THEN 1
-            END
-        ) AS fraud_transactions,
-
         sum(
             CASE
-                WHEN t.fraud_status = 'FRAUD'
-                THEN t.amount
+                WHEN coalesce(
+                    t.fraud_status,
+                    t.transaction_type
+                ) = 'FRAUD'
+                THEN 1
+                ELSE 0
+            END
+        ) AS fraud_transactions,
+        sum(
+            CASE
+                WHEN coalesce(
+                    t.fraud_status,
+                    t.transaction_type
+                ) = 'FRAUD'
+                THEN coalesce(t.amount, 0)
                 ELSE 0
             END
         ) AS total_fraud_amount
+
+    RETURN
+        total_transactions,
+        fraud_transactions,
+        total_fraud_amount
     """
 
-    with driver.session() as session:
+    try:
+        record = run_query(query)[0]
 
-        record = session.run(query).single()
+        total = int(
+            record["total_transactions"] or 0
+        )
 
-        total = record["total_transactions"] or 0
-        fraud = record["fraud_transactions"] or 0
-        amount = record["total_fraud_amount"] or 0
+        fraud = int(
+            record["fraud_transactions"] or 0
+        )
 
-        percentage = 0
-
-        if total > 0:
-            percentage = round(
-                fraud * 100 / total,
-                2
-            )
+        percentage = (
+            round((fraud / total) * 100, 2)
+            if total
+            else 0
+        )
 
         return {
             "total_transactions": total,
             "fraud_transactions": fraud,
             "fraud_percentage": percentage,
-            "total_fraud_amount": round(
-                float(amount),
-                2
-            )
+            "total_fraud_amount":
+                safe_float(
+                    record["total_fraud_amount"]
+                )
+        }
+
+    except Exception as error:
+        return {
+            "error": str(error)
         }
 
 
-# ======================================
+# ==========================================
 # FRAUD TRANSACTIONS
-# ======================================
+# ==========================================
 
 @app.get("/fraud")
 def fraud_transactions():
 
     if driver is None:
-        return {
-            "error": "NEO4J_PASSWORD environment variable is not set"
-        }
+        return neo4j_error()
 
     query = """
-    MATCH (s:Account)-[:SENT]->(t:Transaction)-[:RECEIVED_BY]->(r:Account)
+    MATCH (t:Transaction)
 
-    WHERE t.fraud_status = 'FRAUD'
-
-    RETURN
-        t.id AS transaction_id,
-        s.id AS sender,
-        r.id AS receiver,
-        t.amount AS amount,
-        t.country AS country,
-        t.fraud_pattern AS fraud_pattern
-
-    ORDER BY t.amount DESC
-
-    LIMIT 100
-    """
-
-    with driver.session() as session:
-
-        result = session.run(query)
-
-        data = []
-
-        for record in result:
-
-            data.append({
-                "transaction_id": record["transaction_id"],
-                "sender": record["sender"],
-                "receiver": record["receiver"],
-                "amount": round(
-                    float(record["amount"] or 0),
-                    2
-                ),
-                "country": record["country"],
-                "fraud_pattern": record["fraud_pattern"]
-            })
-
-        return {
-            "count": len(data),
-            "transactions": data
-        }
-
-
-# ======================================
-# FRAUD HUBS
-# ======================================
-
-@app.get("/fraud-hubs")
-def fraud_hubs():
-
-    if driver is None:
-        return {
-            "error": "NEO4J_PASSWORD environment variable is not set"
-        }
-
-    query = """
-    MATCH (s:Account)-[:SENT]->(t:Transaction)-[:RECEIVED_BY]->(r:Account)
-
-    WHERE t.fraud_status = 'FRAUD'
-
-    WITH
-        r,
-        count(DISTINCT s) AS unique_senders,
-        count(t) AS fraud_transactions,
-        sum(t.amount) AS total_fraud_amount
+    WHERE coalesce(
+        t.fraud_status,
+        t.transaction_type
+    ) = 'FRAUD'
 
     RETURN
-        r.id AS fraud_hub,
-        unique_senders,
-        fraud_transactions,
-        total_fraud_amount
+        coalesce(
+            t.transaction_id,
+            elementId(t)
+        ) AS transaction_id,
 
-    ORDER BY total_fraud_amount DESC
+        coalesce(
+            t.sender_account,
+            t.sender,
+            'Unknown'
+        ) AS sender,
 
-    LIMIT 20
+        coalesce(
+            t.receiver_account,
+            t.receiver,
+            'Unknown'
+        ) AS receiver,
+
+        coalesce(t.amount, 0) AS amount,
+
+        coalesce(t.country, 'Unknown')
+            AS country,
+
+        coalesce(
+            t.fraud_pattern,
+            'Unknown'
+        ) AS fraud_pattern,
+
+        coalesce(
+            t.timestamp,
+            t.date,
+            ''
+        ) AS timestamp
+
+    ORDER BY amount DESC
     """
 
-    with driver.session() as session:
-
-        result = session.run(query)
-
-        data = []
-
-        for record in result:
-
-            data.append({
-                "fraud_hub": record["fraud_hub"],
-                "unique_senders": record["unique_senders"],
-                "fraud_transactions": record["fraud_transactions"],
-                "total_fraud_amount": round(
-                    float(record["total_fraud_amount"] or 0),
-                    2
-                )
-            })
-
-        return data
-
-
-# ======================================
-# RISK ACCOUNTS
-# ======================================
-
-@app.get("/risk-accounts")
-def risk_accounts():
-
-    if driver is None:
-        return {
-            "error": "NEO4J_PASSWORD environment variable is not set"
-        }
-
-    query = """
-    MATCH (s:Account)-[:SENT]->(t:Transaction)-[:RECEIVED_BY]->(r:Account)
-
-    WHERE t.fraud_status = 'FRAUD'
-
-    WITH
-        s,
-        collect(DISTINCT r.id) AS receivers,
-        count(t) AS fraud_transactions,
-        sum(t.amount) AS total_fraud_amount
-
-    WITH
-        s,
-        receivers,
-        fraud_transactions,
-        total_fraud_amount,
-
-        (
-            fraud_transactions * 10 +
-            size(receivers) * 15 +
-            total_fraud_amount / 1000
-        ) AS risk_score
-
-    RETURN
-        s.id AS account,
-        size(receivers) AS connected_receivers,
-        fraud_transactions,
-        total_fraud_amount,
-        risk_score,
-
-        CASE
-            WHEN risk_score >= 40 THEN 'CRITICAL'
-            WHEN risk_score >= 30 THEN 'HIGH'
-            WHEN risk_score >= 20 THEN 'MEDIUM'
-            ELSE 'LOW'
-        END AS risk_category
-
-    ORDER BY risk_score DESC
-
-    LIMIT 20
-    """
-
-    with driver.session() as session:
-
-        result = session.run(query)
-
-        data = []
-
-        for record in result:
-
-            data.append({
-                "account": record["account"],
-                "connected_receivers":
-                    record["connected_receivers"],
-                "fraud_transactions":
-                    record["fraud_transactions"],
-                "total_fraud_amount":
-                    round(
-                        float(
-                            record["total_fraud_amount"] or 0
-                        ),
-                        2
-                    ),
-                "risk_score":
-                    round(
-                        float(
-                            record["risk_score"] or 0
-                        ),
-                        2
-                    ),
-                "risk_category":
-                    record["risk_category"]
-            })
-
-        return data
-
-
-# ======================================
-# ACCOUNT DETAILS
-# ======================================
-
-@app.get("/account/{account_id}")
-def account_details(account_id: str):
-
-    if driver is None:
-        return {
-            "error": "NEO4J_PASSWORD environment variable is not set"
-        }
-
-    query = """
-    MATCH (s:Account {id: $account_id})
-
-    OPTIONAL MATCH
-        (s)-[:SENT]->(t:Transaction)-[:RECEIVED_BY]->(r:Account)
-
-    WITH
-        s,
-        collect({
-            transaction_id: t.id,
-            receiver: r.id,
-            amount: t.amount,
-            fraud_status: t.fraud_status,
-            fraud_pattern: t.fraud_pattern
-        }) AS transactions
-
-    RETURN
-        s.id AS account,
-        transactions
-    """
-
-    with driver.session() as session:
-
-        record = session.run(
-            query,
-            account_id=account_id
-        ).single()
-
-        if record is None:
-
-            return {
-                "error": "Account not found",
-                "account": account_id
-            }
+    try:
+        records = run_query(query)
 
         transactions = []
 
-        for transaction in record["transactions"]:
-
-            if transaction["transaction_id"] is not None:
-
-                transactions.append({
-                    "transaction_id":
-                        transaction["transaction_id"],
-
-                    "receiver":
-                        transaction["receiver"],
-
-                    "amount":
-                        round(
-                            float(
-                                transaction["amount"] or 0
-                            ),
-                            2
-                        ),
-
-                    "fraud_status":
-                        transaction["fraud_status"],
-
-                    "fraud_pattern":
-                        transaction["fraud_pattern"]
-                })
-
-        fraud_transactions = [
-            transaction
-            for transaction in transactions
-            if transaction["fraud_status"] == "FRAUD"
-        ]
-
-        total_fraud_amount = sum(
-            transaction["amount"]
-            for transaction in fraud_transactions
-        )
+        for record in records:
+            transactions.append({
+                "transaction_id":
+                    record["transaction_id"],
+                "sender":
+                    record["sender"],
+                "receiver":
+                    record["receiver"],
+                "amount":
+                    safe_float(record["amount"]),
+                "country":
+                    record["country"],
+                "fraud_pattern":
+                    record["fraud_pattern"],
+                "timestamp":
+                    str(record["timestamp"])
+            })
 
         return {
-            "account": record["account"],
-            "total_transactions":
-                len(transactions),
-            "fraud_transactions":
-                len(fraud_transactions),
-            "total_fraud_amount":
-                round(
-                    total_fraud_amount,
-                    2
-                ),
-            "transactions":
-                transactions
+            "transactions": transactions,
+            "count": len(transactions)
+        }
+
+    except Exception as error:
+        return {
+            "error": str(error)
         }
 
 
-# ======================================
+# ==========================================
 # FRAUD ALERTS
-# ======================================
+# ==========================================
 
 @app.get("/alerts")
 def alerts():
 
     if driver is None:
-        return {
-            "error": "NEO4J_PASSWORD environment variable is not set"
-        }
+        return neo4j_error()
 
     query = """
-    MATCH (s:Account)-[:SENT]->(t:Transaction)-[:RECEIVED_BY]->(r:Account)
+    MATCH (t:Transaction)
 
-    WHERE t.fraud_status = 'FRAUD'
+    WHERE coalesce(
+        t.fraud_status,
+        t.transaction_type
+    ) = 'FRAUD'
 
     WITH
-        s,
-        collect(DISTINCT r.id) AS receivers,
+        coalesce(
+            t.sender_account,
+            t.sender,
+            'Unknown'
+        ) AS account,
+
+        collect(
+            DISTINCT coalesce(
+                t.receiver_account,
+                t.receiver,
+                'Unknown'
+            )
+        ) AS receivers,
+
         count(t) AS fraud_transactions,
-        sum(t.amount) AS total_fraud_amount
+
+        sum(
+            coalesce(t.amount, 0)
+        ) AS total_fraud_amount,
+
+        sum(
+            coalesce(t.amount, 0)
+        ) +
+        (count(t) * 1000) +
+        (size(collect(DISTINCT
+            coalesce(
+                t.receiver_account,
+                t.receiver,
+                'Unknown'
+            )
+        )) * 500) AS raw_risk_score
 
     WITH
-        s,
+        account,
         receivers,
         fraud_transactions,
         total_fraud_amount,
+        CASE
+            WHEN raw_risk_score > 100000
+                THEN 100
+            WHEN raw_risk_score / 1000.0 > 100
+                THEN 100
+            ELSE round(
+                raw_risk_score / 1000.0,
+                2
+            )
+        END AS risk_score
 
-        (
-            fraud_transactions * 10 +
-            size(receivers) * 15 +
-            total_fraud_amount / 1000
-        ) AS risk_score
-
-    WITH
-        s,
+    RETURN
+        account,
         receivers,
         fraud_transactions,
         total_fraud_amount,
         risk_score,
 
         CASE
-            WHEN risk_score >= 40 THEN 'CRITICAL'
-            WHEN risk_score >= 30 THEN 'HIGH'
-            WHEN risk_score >= 20 THEN 'MEDIUM'
+            WHEN risk_score >= 80
+                THEN 'CRITICAL'
+            WHEN risk_score >= 60
+                THEN 'HIGH'
+            WHEN risk_score >= 30
+                THEN 'MEDIUM'
             ELSE 'LOW'
         END AS risk_category
 
-    WHERE risk_score >= 30
-
-    RETURN
-        s.id AS account,
-        receivers,
-        fraud_transactions,
-        total_fraud_amount,
-        risk_score,
-        risk_category
-
     ORDER BY risk_score DESC
-
-    LIMIT 100
     """
 
-    with driver.session() as session:
+    try:
+        records = run_query(query)
 
-        result = session.run(query)
+        result = []
 
-        data = []
-
-        for record in result:
-
-            data.append({
+        for record in records:
+            result.append({
                 "account":
                     record["account"],
-
                 "receivers":
-                    record["receivers"],
-
+                    record["receivers"] or [],
                 "fraud_transactions":
-                    record["fraud_transactions"],
-
+                    int(
+                        record["fraud_transactions"] or 0
+                    ),
                 "total_fraud_amount":
-                    round(
-                        float(
-                            record[
-                                "total_fraud_amount"
-                            ] or 0
-                        ),
-                        2
+                    safe_float(
+                        record["total_fraud_amount"]
                     ),
-
                 "risk_score":
-                    round(
-                        float(
-                            record["risk_score"] or 0
-                        ),
-                        2
+                    safe_float(
+                        record["risk_score"]
                     ),
-
                 "risk_category":
                     record["risk_category"]
             })
 
         return {
-            "count": len(data),
-            "alerts": data
+            "alerts": result,
+            "count": len(result)
+        }
+
+    except Exception as error:
+        return {
+            "error": str(error)
         }
 
 
-# ======================================
-# FRAUD NETWORK
-# ======================================
+# ==========================================
+# RISK ACCOUNTS
+# ==========================================
 
-@app.get("/fraud-network")
-def fraud_network():
+@app.get("/risk-accounts")
+def risk_accounts():
 
     if driver is None:
-        return {
-            "error": "NEO4J_PASSWORD environment variable is not set"
-        }
+        return neo4j_error()
 
     query = """
-    MATCH (s:Account)-[:SENT]->(t:Transaction)-[:RECEIVED_BY]->(r:Account)
+    MATCH (t:Transaction)
 
-    WHERE t.fraud_status = 'FRAUD'
+    WHERE coalesce(
+        t.fraud_status,
+        t.transaction_type
+    ) = 'FRAUD'
+
+    WITH
+        coalesce(
+            t.sender_account,
+            t.sender,
+            'Unknown'
+        ) AS account,
+
+        count(t) AS fraud_transactions,
+
+        sum(
+            coalesce(t.amount, 0)
+        ) AS total_fraud_amount,
+
+        collect(
+            DISTINCT coalesce(
+                t.receiver_account,
+                t.receiver,
+                'Unknown'
+            )
+        ) AS receivers
+
+    WITH
+        account,
+        fraud_transactions,
+        total_fraud_amount,
+        receivers,
+
+        (
+            fraud_transactions * 10
+            +
+            size(receivers) * 5
+            +
+            CASE
+                WHEN total_fraud_amount >= 100000
+                    THEN 50
+                WHEN total_fraud_amount >= 50000
+                    THEN 30
+                WHEN total_fraud_amount >= 10000
+                    THEN 15
+                ELSE 5
+            END
+        ) AS raw_score
+
+    WITH
+        account,
+        fraud_transactions,
+        total_fraud_amount,
+        receivers,
+
+        CASE
+            WHEN raw_score > 100
+                THEN 100
+            ELSE raw_score
+        END AS risk_score
 
     RETURN
-        s.id AS sender,
-        t.id AS transaction,
-        r.id AS receiver,
-        t.amount AS amount,
-        t.fraud_pattern AS fraud_pattern
+        account,
+        fraud_transactions,
+        total_fraud_amount,
+        risk_score,
 
-    ORDER BY t.amount DESC
+        CASE
+            WHEN risk_score >= 80
+                THEN 'CRITICAL'
+            WHEN risk_score >= 60
+                THEN 'HIGH'
+            WHEN risk_score >= 30
+                THEN 'MEDIUM'
+            ELSE 'LOW'
+        END AS risk_category
 
-    LIMIT 100
+    ORDER BY risk_score DESC
     """
 
-    with driver.session() as session:
+    try:
+        records = run_query(query)
 
-        result = session.run(query)
+        result = []
 
-        nodes = {}
-        edges = []
-
-        for record in result:
-
-            sender = record["sender"]
-            transaction = record["transaction"]
-            receiver = record["receiver"]
-
-            amount = float(
-                record["amount"] or 0
-            )
-
-            if sender not in nodes:
-
-                nodes[sender] = {
-                    "id": sender,
-                    "label": sender,
-                    "type": "ACCOUNT"
-                }
-
-            if transaction not in nodes:
-
-                nodes[transaction] = {
-                    "id": transaction,
-                    "label": transaction,
-                    "type": "TRANSACTION"
-                }
-
-            if receiver not in nodes:
-
-                nodes[receiver] = {
-                    "id": receiver,
-                    "label": receiver,
-                    "type": "ACCOUNT"
-                }
-
-            edges.append({
-                "source": sender,
-                "target": transaction,
-                "relationship": "SENT",
-                "amount": amount
+        for record in records:
+            result.append({
+                "account":
+                    record["account"],
+                "fraud_transactions":
+                    int(
+                        record["fraud_transactions"] or 0
+                    ),
+                "total_fraud_amount":
+                    safe_float(
+                        record["total_fraud_amount"]
+                    ),
+                "risk_score":
+                    safe_float(
+                        record["risk_score"]
+                    ),
+                "risk_category":
+                    record["risk_category"]
             })
 
-            edges.append({
-                "source": transaction,
-                "target": receiver,
-                "relationship": "RECEIVED_BY",
-                "amount": amount
+        return result
+
+    except Exception as error:
+        return {
+            "error": str(error)
+        }
+
+
+# ==========================================
+# FRAUD HUBS
+# ==========================================
+
+@app.get("/fraud-hubs")
+def fraud_hubs():
+
+    if driver is None:
+        return neo4j_error()
+
+    query = """
+    MATCH (t:Transaction)
+
+    WHERE coalesce(
+        t.fraud_status,
+        t.transaction_type
+    ) = 'FRAUD'
+
+    WITH
+        coalesce(
+            t.receiver_account,
+            t.receiver,
+            'Unknown'
+        ) AS fraud_hub,
+
+        count(
+            DISTINCT coalesce(
+                t.sender_account,
+                t.sender
+            )
+        ) AS unique_senders,
+
+        count(t) AS fraud_transactions,
+
+        sum(
+            coalesce(t.amount, 0)
+        ) AS total_fraud_amount
+
+    RETURN
+        fraud_hub,
+        unique_senders,
+        fraud_transactions,
+        total_fraud_amount
+
+    ORDER BY fraud_transactions DESC
+    """
+
+    try:
+        records = run_query(query)
+
+        result = []
+
+        for record in records:
+            result.append({
+                "fraud_hub":
+                    record["fraud_hub"],
+                "unique_senders":
+                    int(
+                        record["unique_senders"] or 0
+                    ),
+                "fraud_transactions":
+                    int(
+                        record["fraud_transactions"] or 0
+                    ),
+                "total_fraud_amount":
+                    safe_float(
+                        record["total_fraud_amount"]
+                    )
+            })
+
+        return result
+
+    except Exception as error:
+        return {
+            "error": str(error)
+        }
+
+
+# ==========================================
+# ACCOUNT DETAILS
+# ==========================================
+
+@app.get("/account/{account_id}")
+def account_details(account_id: str):
+
+    if driver is None:
+        return neo4j_error()
+
+    query = """
+    MATCH (t:Transaction)
+
+    WHERE
+        coalesce(
+            t.sender_account,
+            t.sender
+        ) = $account_id
+
+        OR
+
+        coalesce(
+            t.receiver_account,
+            t.receiver
+        ) = $account_id
+
+    WITH
+        collect(t) AS transactions
+
+    RETURN
+        size(transactions)
+            AS total_transactions,
+
+        size([
+            x IN transactions
+            WHERE coalesce(
+                x.fraud_status,
+                x.transaction_type
+            ) = 'FRAUD'
+        ])
+            AS fraud_transactions,
+
+        reduce(
+            total = 0.0,
+            x IN transactions |
+            total +
+            CASE
+                WHEN coalesce(
+                    x.fraud_status,
+                    x.transaction_type
+                ) = 'FRAUD'
+                THEN coalesce(x.amount, 0)
+                ELSE 0
+            END
+        )
+            AS total_fraud_amount,
+
+        [
+            x IN transactions |
+            {
+                transaction_id:
+                    coalesce(
+                        x.transaction_id,
+                        elementId(x)
+                    ),
+
+                receiver:
+                    coalesce(
+                        x.receiver_account,
+                        x.receiver,
+                        'Unknown'
+                    ),
+
+                amount:
+                    coalesce(x.amount, 0),
+
+                fraud_status:
+                    coalesce(
+                        x.fraud_status,
+                        x.transaction_type,
+                        'UNKNOWN'
+                    ),
+
+                fraud_pattern:
+                    coalesce(
+                        x.fraud_pattern,
+                        'Unknown'
+                    )
+            }
+        ][0..50]
+            AS transaction_details
+    """
+
+    try:
+        records = run_query(
+            query,
+            {"account_id": account_id}
+        )
+
+        if not records:
+            return {
+                "error":
+                    "Account not found"
+            }
+
+        record = records[0]
+
+        transactions = []
+
+        for item in (
+            record["transaction_details"]
+            or []
+        ):
+            transactions.append({
+                "transaction_id":
+                    item["transaction_id"],
+                "receiver":
+                    item["receiver"],
+                "amount":
+                    safe_float(item["amount"]),
+                "fraud_status":
+                    item["fraud_status"],
+                "fraud_pattern":
+                    item["fraud_pattern"]
             })
 
         return {
-            "nodes": list(nodes.values()),
-            "edges": edges
+            "account":
+                account_id,
+            "total_transactions":
+                int(
+                    record["total_transactions"]
+                    or 0
+                ),
+            "fraud_transactions":
+                int(
+                    record["fraud_transactions"]
+                    or 0
+                ),
+            "total_fraud_amount":
+                safe_float(
+                    record["total_fraud_amount"]
+                ),
+            "transactions":
+                transactions
         }
 
-# ======================================
+    except Exception as error:
+        return {
+            "error": str(error)
+        }
+
+
+# ==========================================
 # FRAUD PATTERN ANALYSIS
-# ======================================
+# ==========================================
 
 @app.get("/fraud-patterns")
 def fraud_patterns():
 
     if driver is None:
-        return {
-            "error": "NEO4J_PASSWORD environment variable is not set"
-        }
+        return neo4j_error()
 
     query = """
     MATCH (t:Transaction)
 
-    WHERE t.fraud_status = 'FRAUD'
+    WHERE coalesce(
+        t.fraud_status,
+        t.transaction_type
+    ) = 'FRAUD'
 
     WITH
-        coalesce(t.fraud_pattern, 'Unknown') AS pattern,
+        coalesce(
+            t.fraud_pattern,
+            'Unknown'
+        ) AS pattern,
+
         count(t) AS transaction_count,
-        sum(t.amount) AS total_amount
+
+        sum(
+            coalesce(t.amount, 0)
+        ) AS total_amount
 
     RETURN
         pattern,
@@ -657,38 +811,344 @@ def fraud_patterns():
     ORDER BY transaction_count DESC
     """
 
-    with driver.session() as session:
-
-        result = session.run(query)
+    try:
+        records = run_query(query)
 
         data = []
 
-        for record in result:
-
+        for record in records:
             data.append({
-                "pattern": record["pattern"],
+                "pattern":
+                    record["pattern"],
+
                 "transaction_count":
-                    record["transaction_count"],
+                    int(
+                        record["transaction_count"]
+                        or 0
+                    ),
+
                 "total_amount":
-                    round(
-                        float(
-                            record["total_amount"] or 0
-                        ),
-                        2
+                    safe_float(
+                        record["total_amount"]
                     )
             })
 
         return {
             "patterns": data
         }
-# ======================================
+
+    except Exception as error:
+        return {
+            "error": str(error)
+        }
+
+
+# ==========================================
+# FRAUD TREND ANALYSIS
+# ==========================================
+
+@app.get("/fraud-trends")
+def fraud_trends():
+
+    if driver is None:
+        return neo4j_error()
+
+    query = """
+    MATCH (t:Transaction)
+
+    WHERE coalesce(
+        t.fraud_status,
+        t.transaction_type
+    ) = 'FRAUD'
+
+    WITH
+        coalesce(
+            t.timestamp,
+            t.date
+        ) AS transaction_date,
+
+        count(t) AS fraud_transactions,
+
+        sum(
+            coalesce(t.amount, 0)
+        ) AS fraud_amount
+
+    RETURN
+        transaction_date,
+        fraud_transactions,
+        fraud_amount
+
+    ORDER BY transaction_date
+    """
+
+    try:
+        records = run_query(query)
+
+        data = []
+
+        for record in records:
+            data.append({
+                "date":
+                    str(
+                        record["transaction_date"]
+                    )
+                    if record["transaction_date"]
+                    else "Unknown",
+
+                "fraud_transactions":
+                    int(
+                        record["fraud_transactions"]
+                        or 0
+                    ),
+
+                "fraud_amount":
+                    safe_float(
+                        record["fraud_amount"]
+                    )
+            })
+
+        return {
+            "trends": data
+        }
+
+    except Exception as error:
+        return {
+            "error": str(error)
+        }
+
+
+# ==========================================
+# COUNTRY-WISE FRAUD ANALYSIS
+# ==========================================
+
+@app.get("/fraud-countries")
+def fraud_countries():
+
+    if driver is None:
+        return neo4j_error()
+
+    query = """
+    MATCH (t:Transaction)
+
+    WHERE coalesce(
+        t.fraud_status,
+        t.transaction_type
+    ) = 'FRAUD'
+
+    WITH
+        coalesce(
+            t.country,
+            'Unknown'
+        ) AS country,
+
+        count(t) AS fraud_transactions,
+
+        sum(
+            coalesce(t.amount, 0)
+        ) AS fraud_amount
+
+    RETURN
+        country,
+        fraud_transactions,
+        fraud_amount
+
+    ORDER BY fraud_transactions DESC
+    """
+
+    try:
+        records = run_query(query)
+
+        data = []
+
+        for record in records:
+            data.append({
+                "country":
+                    record["country"],
+
+                "fraud_transactions":
+                    int(
+                        record["fraud_transactions"]
+                        or 0
+                    ),
+
+                "fraud_amount":
+                    safe_float(
+                        record["fraud_amount"]
+                    )
+            })
+
+        return {
+            "countries": data
+        }
+
+    except Exception as error:
+        return {
+            "error": str(error)
+        }
+
+
+# ==========================================
+# FRAUD NETWORK
+# ==========================================
+
+@app.get("/fraud-network")
+def fraud_network():
+
+    if driver is None:
+        return neo4j_error()
+
+    query = """
+    MATCH (t:Transaction)
+
+    WHERE coalesce(
+        t.fraud_status,
+        t.transaction_type
+    ) = 'FRAUD'
+
+    WITH t
+    LIMIT 250
+
+    OPTIONAL MATCH (s:Account)
+    WHERE
+        s.account_id =
+        coalesce(
+            t.sender_account,
+            t.sender
+        )
+
+    OPTIONAL MATCH (r:Account)
+    WHERE
+        r.account_id =
+        coalesce(
+            t.receiver_account,
+            t.receiver
+        )
+
+    RETURN
+        t,
+        s,
+        r
+    """
+
+    try:
+        records = run_query(query)
+
+        nodes = {}
+        edges = []
+
+        for record in records:
+
+            transaction = record["t"]
+            sender_node = record["s"]
+            receiver_node = record["r"]
+
+            transaction_id = str(
+                transaction.get(
+                    "transaction_id",
+                    transaction.element_id
+                )
+            )
+
+            sender = (
+                transaction.get(
+                    "sender_account"
+                )
+                or transaction.get("sender")
+                or "Unknown"
+            )
+
+            receiver = (
+                transaction.get(
+                    "receiver_account"
+                )
+                or transaction.get("receiver")
+                or "Unknown"
+            )
+
+            amount = safe_float(
+                transaction.get("amount", 0)
+            )
+
+            sender_id = f"ACCOUNT:{sender}"
+            receiver_id = f"ACCOUNT:{receiver}"
+            transaction_node_id = (
+                f"TRANSACTION:{transaction_id}"
+            )
+
+            nodes[sender_id] = {
+                "id": sender_id,
+                "label": str(sender),
+                "type": "ACCOUNT"
+            }
+
+            nodes[receiver_id] = {
+                "id": receiver_id,
+                "label": str(receiver),
+                "type": "ACCOUNT"
+            }
+
+            nodes[transaction_node_id] = {
+                "id": transaction_node_id,
+                "label": transaction_id[:12],
+                "type": "TRANSACTION"
+            }
+
+            edges.append({
+                "source":
+                    sender_id,
+                "target":
+                    transaction_node_id,
+                "amount":
+                    amount
+            })
+
+            edges.append({
+                "source":
+                    transaction_node_id,
+                "target":
+                    receiver_id,
+                "amount":
+                    amount
+            })
+
+        return {
+            "nodes":
+                list(nodes.values()),
+            "edges":
+                edges
+        }
+
+    except Exception as error:
+        return {
+            "error": str(error)
+        }
+
+
+# ==========================================
 # SHUTDOWN
-# ======================================
+# ==========================================
 
 @app.on_event("shutdown")
-def shutdown():
+def shutdown_event():
 
     global driver
 
-    if driver:
+    if driver is not None:
         driver.close()
+        driver = None
+
+
+# ==========================================
+# LOCAL RUN
+# ==========================================
+
+if __name__ == "__main__":
+
+    import uvicorn
+
+    uvicorn.run(
+        "api.main:app",
+        host="127.0.0.1",
+        port=8000,
+        reload=True
+    )

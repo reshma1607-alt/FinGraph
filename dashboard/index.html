@@ -2,17 +2,30 @@
 <html lang="en">
 
 <head>
+    <link
+    rel="icon"
+    href="data:image/svg+xml,
+    <svg xmlns=%22http://www.w3.org/2000/svg%22
+    viewBox=%220 0 100 100%22>
+    <text y=%22.9em%22 font-size=%2290%22>F</text>
+    </svg>"
+>
 
 <meta charset="UTF-8">
 
-<meta name="viewport"
-      content="width=device-width, initial-scale=1.0">
+<meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+>
 
-<title>FinGraph | Fraud Intelligence</title>
+<title>
+    FinGraph | Fraud Intelligence
+</title>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+
 
 <style>
 
@@ -23,175 +36,311 @@
 }
 
 :root {
+
     --bg: #07111f;
     --panel: #0d1b2a;
     --panel2: #102235;
     --border: #20364d;
     --text: #f8fafc;
     --muted: #8fa6bb;
+
     --blue: #38bdf8;
     --red: #ef4444;
     --orange: #f59e0b;
     --green: #22c55e;
     --purple: #a78bfa;
+
 }
 
 body {
-    font-family: Inter, "Segoe UI", Arial, sans-serif;
+
+    font-family:
+        Inter,
+        "Segoe UI",
+        Arial,
+        sans-serif;
+
     background:
-        radial-gradient(circle at top right,
-        #12304a 0%, var(--bg) 45%);
+        radial-gradient(
+            circle at top right,
+            #12304a 0%,
+            var(--bg) 45%
+        );
+
     color: var(--text);
+
     min-height: 100vh;
+
 }
 
+
+/* =================================
+   HEADER
+================================= */
+
 header {
+
     position: sticky;
     top: 0;
     z-index: 100;
-    background: rgba(7,17,31,.95);
-    backdrop-filter: blur(16px);
-    border-bottom: 1px solid var(--border);
+
+    background:
+        rgba(7,17,31,0.95);
+
+    backdrop-filter:
+        blur(16px);
+
+    border-bottom:
+        1px solid var(--border);
+
 }
 
 .header-content {
+
     max-width: 1500px;
     margin: auto;
+
     padding: 18px 32px;
+
     display: flex;
     justify-content: space-between;
     align-items: center;
+
 }
 
 .brand {
+
     display: flex;
     align-items: center;
     gap: 13px;
+
 }
 
 .logo {
+
     width: 46px;
     height: 46px;
+
     border-radius: 12px;
+
     display: flex;
     align-items: center;
     justify-content: center;
+
     font-weight: 800;
-    background: linear-gradient(135deg,
-        var(--blue), var(--purple));
+
+    background:
+        linear-gradient(
+            135deg,
+            var(--blue),
+            var(--purple)
+        );
+
     color: #03111d;
+
 }
 
 .brand h1 {
+
     font-size: 22px;
+
 }
 
 .brand p {
+
     color: var(--muted);
     font-size: 12px;
     margin-top: 3px;
+
 }
 
 .header-actions {
+
     display: flex;
     align-items: center;
     gap: 12px;
+
 }
 
 .status {
+
     display: flex;
     align-items: center;
     gap: 8px;
+
     padding: 8px 13px;
+
     border-radius: 999px;
-    background: rgba(34,197,94,.08);
-    border: 1px solid rgba(34,197,94,.25);
+
+    background:
+        rgba(34,197,94,0.08);
+
+    border:
+        1px solid rgba(34,197,94,0.25);
+
     color: #bbf7d0;
+
     font-size: 12px;
+
 }
 
 .status-dot {
+
     width: 8px;
     height: 8px;
+
     border-radius: 50%;
+
     background: var(--green);
+
 }
 
 .refresh-btn {
+
     padding: 9px 15px;
-    border: 1px solid var(--border);
-    background: var(--panel);
+
+    border:
+        1px solid var(--border);
+
+    background:
+        var(--panel);
+
     color: white;
+
     border-radius: 8px;
+
     cursor: pointer;
+
 }
 
 .refresh-btn:hover {
+
     border-color: var(--blue);
+
 }
 
+
+/* =================================
+   MAIN
+================================= */
+
 .container {
+
     max-width: 1500px;
     margin: auto;
+
     padding: 32px;
+
 }
 
 .page-title {
+
     margin-bottom: 25px;
+
 }
 
 .page-title h2 {
+
     font-size: 30px;
     margin-bottom: 7px;
+
 }
 
 .page-title p {
+
     color: var(--muted);
     font-size: 14px;
+
 }
+
+
+/* =================================
+   ALERT BANNER
+================================= */
 
 .alert-banner {
+
     display: none;
+
     padding: 16px 20px;
+
     margin-bottom: 24px;
+
     border-radius: 13px;
-    border: 1px solid rgba(239,68,68,.35);
-    background: rgba(239,68,68,.08);
+
+    border:
+        1px solid rgba(239,68,68,0.35);
+
+    background:
+        rgba(239,68,68,0.08);
+
     color: #fecaca;
+
 }
 
+
+/* =================================
+   STATS
+================================= */
+
 .stats-grid {
+
     display: grid;
-    grid-template-columns: repeat(4,1fr);
+
+    grid-template-columns:
+        repeat(4,1fr);
+
     gap: 18px;
+
     margin-bottom: 25px;
+
 }
 
 .stat-card {
+
     padding: 22px;
+
     border-radius: 15px;
-    border: 1px solid var(--border);
-    background: linear-gradient(145deg,
-        rgba(18,38,58,.96),
-        rgba(10,26,43,.96));
+
+    border:
+        1px solid var(--border);
+
+    background:
+        linear-gradient(
+            145deg,
+            rgba(18,38,58,0.96),
+            rgba(10,26,43,0.96)
+        );
+
 }
 
 .stat-icon {
+
     font-size: 20px;
     margin-bottom: 12px;
+
 }
 
 .stat-label {
+
     color: var(--muted);
+
     font-size: 11px;
+
     text-transform: uppercase;
-    letter-spacing: .8px;
+
+    letter-spacing: 0.8px;
+
     margin-bottom: 9px;
+
 }
 
 .stat-value {
+
     font-size: 29px;
+
     font-weight: 750;
+
 }
 
 .blue { color: var(--blue); }
@@ -199,96 +348,175 @@ header {
 .orange { color: var(--orange); }
 .purple { color: var(--purple); }
 
+
+/* =================================
+   CHARTS
+================================= */
+
 .charts-grid {
+
     display: grid;
-    grid-template-columns: 1fr 1fr;
+
+    grid-template-columns:
+        1fr 1fr;
+
     gap: 20px;
+
     margin-bottom: 25px;
+
 }
 
 .chart-card {
-    background: rgba(13,27,42,.92);
-    border: 1px solid var(--border);
+
+    background:
+        rgba(13,27,42,0.92);
+
+    border:
+        1px solid var(--border);
+
     border-radius: 15px;
+
     padding: 22px;
+
 }
 
 .chart-title {
+
     margin-bottom: 20px;
+
 }
 
 .chart-title h3 {
+
     font-size: 16px;
+
 }
 
 .chart-title p {
+
     color: var(--muted);
     font-size: 11px;
     margin-top: 4px;
+
 }
 
 .chart-container {
+
     height: 270px;
     position: relative;
+
 }
 
+
+/* =================================
+   SECTIONS
+================================= */
+
 .section {
-    background: rgba(13,27,42,.92);
-    border: 1px solid var(--border);
+
+    background:
+        rgba(13,27,42,0.92);
+
+    border:
+        1px solid var(--border);
+
     border-radius: 15px;
+
     margin-bottom: 25px;
+
     overflow: hidden;
+
 }
 
 .section-header {
+
     padding: 19px 22px;
+
     display: flex;
+
     align-items: center;
+
     justify-content: space-between;
+
     gap: 15px;
-    border-bottom: 1px solid var(--border);
+
+    border-bottom:
+        1px solid var(--border);
+
 }
 
 .section-title h3 {
+
     font-size: 17px;
+
 }
 
 .section-title span {
+
     color: var(--muted);
     font-size: 11px;
+
 }
 
+
+/* =================================
+   NETWORK
+================================= */
+
 .network-wrapper {
+
     height: 560px;
+
     position: relative;
+
     background:
-        radial-gradient(circle,
-        #102a40 0%, #071522 65%);
+        radial-gradient(
+            circle,
+            #102a40 0%,
+            #071522 65%
+        );
+
 }
 
 #fraudNetwork {
+
     width: 100%;
     height: 100%;
+
 }
 
 .network-legend {
+
     position: absolute;
+
     left: 18px;
     bottom: 18px;
+
     z-index: 5;
+
     padding: 12px 14px;
-    border: 1px solid var(--border);
+
+    border:
+        1px solid var(--border);
+
     border-radius: 10px;
-    background: rgba(7,17,31,.9);
+
+    background:
+        rgba(7,17,31,0.9);
+
     font-size: 11px;
+
     color: var(--muted);
+
 }
 
 .legend-item {
+
     display: flex;
     align-items: center;
     gap: 7px;
     margin-bottom: 6px;
+
 }
 
 .legend-item:last-child {
@@ -296,9 +524,11 @@ header {
 }
 
 .legend-dot {
+
     width: 9px;
     height: 9px;
     border-radius: 50%;
+
 }
 
 .legend-account {
@@ -309,189 +539,360 @@ header {
     background: var(--blue);
 }
 
-.pattern-wrapper {
-    height: 360px;
-    padding: 24px;
-    position: relative;
-}
+
+/* =================================
+   SEARCH
+================================= */
 
 .search-box {
+
     width: 230px;
+
     padding: 9px 12px;
+
     border-radius: 8px;
-    border: 1px solid var(--border);
-    background: #091827;
+
+    border:
+        1px solid var(--border);
+
+    background:
+        #091827;
+
     color: white;
+
     outline: none;
+
 }
 
 .search-box:focus {
+
     border-color: var(--blue);
+
 }
 
+
+/* =================================
+   ACCOUNT BUTTON
+================================= */
+
 .account-btn {
+
     border: none;
+
     background: transparent;
+
     color: var(--blue);
+
     font-weight: 700;
+
     cursor: pointer;
+
     padding: 0;
+
     font-size: 13px;
+
 }
 
 .account-btn:hover {
+
     color: #7dd3fc;
+
     text-decoration: underline;
+
 }
 
+
+/* =================================
+   TABLE
+================================= */
+
 .table-wrapper {
+
     overflow-x: auto;
+
 }
 
 table {
+
     width: 100%;
+
     border-collapse: collapse;
+
     min-width: 700px;
+
 }
 
 th {
-    background: #0a1726;
+
+    background:
+        #0a1726;
+
     color: #8ea7bd;
+
     font-size: 10px;
+
     text-transform: uppercase;
+
     letter-spacing: .7px;
+
     text-align: left;
+
     padding: 14px 18px;
+
 }
 
 td {
+
     padding: 14px 18px;
-    border-top: 1px solid rgba(32,54,77,.65);
+
+    border-top:
+        1px solid
+        rgba(32,54,77,.65);
+
     color: #dbe7f2;
+
     font-size: 13px;
+
 }
 
 tbody tr:hover {
-    background: rgba(56,189,248,.045);
+
+    background:
+        rgba(56,189,248,.045);
+
 }
 
+
+/* =================================
+   BADGES
+================================= */
+
 .badge {
+
     display: inline-flex;
+
     padding: 5px 9px;
+
     border-radius: 999px;
+
     font-size: 10px;
+
     font-weight: 800;
+
 }
 
 .critical {
+
     color: #fecaca;
-    background: rgba(239,68,68,.14);
+
+    background:
+        rgba(239,68,68,.14);
+
 }
 
 .high {
+
     color: #fed7aa;
-    background: rgba(249,115,22,.14);
+
+    background:
+        rgba(249,115,22,.14);
+
 }
 
 .medium {
+
     color: #fde68a;
-    background: rgba(245,158,11,.14);
+
+    background:
+        rgba(245,158,11,.14);
+
 }
 
 .low {
+
     color: #bbf7d0;
-    background: rgba(34,197,94,.12);
+
+    background:
+        rgba(34,197,94,.12);
+
 }
 
 .score {
+
     font-weight: 750;
+
 }
 
 .loading {
+
     text-align: center;
+
     padding: 30px;
+
     color: var(--muted);
+
 }
 
+
+/* =================================
+   MODAL
+================================= */
+
 .account-modal {
+
     display: none;
+
     position: fixed;
+
     inset: 0;
+
     z-index: 1000;
-    background: rgba(0,0,0,.72);
-    backdrop-filter: blur(7px);
+
+    background:
+        rgba(0,0,0,.72);
+
+    backdrop-filter:
+        blur(7px);
+
     align-items: center;
+
     justify-content: center;
+
     padding: 20px;
+
 }
 
 .account-modal.show {
+
     display: flex;
+
 }
 
 .modal-content {
+
     width: min(950px,100%);
+
     max-height: 88vh;
+
     overflow: auto;
-    background: #0d1b2a;
-    border: 1px solid var(--border);
+
+    background:
+        #0d1b2a;
+
+    border:
+        1px solid var(--border);
+
     border-radius: 17px;
-    box-shadow: 0 30px 90px rgba(0,0,0,.55);
+
+    box-shadow:
+        0 30px 90px
+        rgba(0,0,0,.55);
+
 }
 
 .modal-header {
+
     padding: 20px 24px;
+
     display: flex;
+
     justify-content: space-between;
+
     align-items: center;
-    border-bottom: 1px solid var(--border);
+
+    border-bottom:
+        1px solid var(--border);
+
 }
 
 .modal-header h3 {
+
     font-size: 18px;
+
 }
 
 .modal-header p {
+
     color: var(--muted);
+
     font-size: 11px;
+
     margin-top: 4px;
+
 }
 
 .close-btn {
-    border: 1px solid var(--border);
-    background: var(--panel2);
+
+    border:
+        1px solid var(--border);
+
+    background:
+        var(--panel2);
+
     color: white;
+
     border-radius: 8px;
+
     padding: 7px 11px;
+
     cursor: pointer;
+
 }
 
 .modal-body {
+
     padding: 24px;
+
 }
 
 .detail-stats {
+
     display: grid;
-    grid-template-columns: repeat(3,1fr);
+
+    grid-template-columns:
+        repeat(3,1fr);
+
     gap: 14px;
+
     margin-bottom: 25px;
+
 }
 
+
+/* =================================
+   FOOTER
+================================= */
+
 footer {
+
     text-align: center;
+
     color: #60788d;
+
     font-size: 11px;
+
     padding: 20px;
+
 }
+
+
+/* =================================
+   RESPONSIVE
+================================= */
 
 @media(max-width:1100px) {
 
     .stats-grid {
-        grid-template-columns: repeat(2,1fr);
+
+        grid-template-columns:
+            repeat(2,1fr);
+
     }
 
     .charts-grid {
+
         grid-template-columns: 1fr;
+
     }
 
 }
@@ -499,32 +900,47 @@ footer {
 @media(max-width:650px) {
 
     .container {
+
         padding: 18px;
+
     }
 
     .header-content {
+
         padding: 15px 18px;
+
     }
 
     .header-actions {
+
         display: none;
+
     }
 
     .stats-grid {
+
         grid-template-columns: 1fr;
+
     }
 
     .detail-stats {
+
         grid-template-columns: 1fr;
+
     }
 
     .section-header {
+
         flex-direction: column;
+
         align-items: flex-start;
+
     }
 
     .search-box {
+
         width: 100%;
+
     }
 
 }
@@ -533,7 +949,9 @@ footer {
 
 </head>
 
+
 <body>
+
 
 <header>
 
@@ -541,11 +959,15 @@ footer {
 
 <div class="brand">
 
-<div class="logo">FG</div>
+<div class="logo">
+FG
+</div>
 
 <div>
 
-<h1>FinGraph</h1>
+<h1>
+FinGraph
+</h1>
 
 <p>
 Graph-Based Financial Fraud Intelligence
@@ -554,6 +976,7 @@ Graph-Based Financial Fraud Intelligence
 </div>
 
 </div>
+
 
 <div class="header-actions">
 
@@ -570,6 +993,7 @@ Connecting...
 
 </div>
 
+
 <button
     class="refresh-btn"
     onclick="loadDashboard()"
@@ -583,7 +1007,9 @@ Connecting...
 
 </header>
 
+
 <main class="container">
+
 
 <div class="page-title">
 
@@ -598,6 +1024,7 @@ high-risk accounts and fraud networks.
 
 </div>
 
+
 <div
     class="alert-banner"
     id="alertBanner"
@@ -605,19 +1032,27 @@ high-risk accounts and fraud networks.
 
 🚨
 
-<strong id="alertCount">0</strong>
+<strong id="alertCount">
+0
+</strong>
 
 high-risk fraud alerts detected.
 
 </div>
 
-<!-- STATISTICS -->
+
+<!-- =================================
+     STATISTICS
+================================= -->
 
 <div class="stats-grid">
 
+
 <div class="stat-card">
 
-<div class="stat-icon blue">◈</div>
+<div class="stat-icon blue">
+◈
+</div>
 
 <div class="stat-label">
 Total Transactions
@@ -632,9 +1067,12 @@ Total Transactions
 
 </div>
 
+
 <div class="stat-card">
 
-<div class="stat-icon red">⚠</div>
+<div class="stat-icon red">
+⚠
+</div>
 
 <div class="stat-label">
 Fraud Transactions
@@ -649,9 +1087,12 @@ Fraud Transactions
 
 </div>
 
+
 <div class="stat-card">
 
-<div class="stat-icon orange">%</div>
+<div class="stat-icon orange">
+%
+</div>
 
 <div class="stat-label">
 Fraud Percentage
@@ -666,9 +1107,12 @@ Fraud Percentage
 
 </div>
 
+
 <div class="stat-card">
 
-<div class="stat-icon purple">₹</div>
+<div class="stat-icon purple">
+₹
+</div>
 
 <div class="stat-label">
 Total Fraud Amount
@@ -685,9 +1129,13 @@ Total Fraud Amount
 
 </div>
 
-<!-- MAIN CHARTS -->
+
+<!-- =================================
+     CHARTS
+================================= -->
 
 <div class="charts-grid">
+
 
 <div class="chart-card">
 
@@ -711,6 +1159,7 @@ Fraudulent vs legitimate transactions
 
 </div>
 
+
 <div class="chart-card">
 
 <div class="chart-title">
@@ -733,37 +1182,87 @@ Accounts grouped by risk category
 
 </div>
 
+<div class="chart-card">
+
+<div class="chart-title">
+
+<h3>
+🚨 Fraud Severity Summary
+</h3>
+
+<p>
+Distribution of detected risk levels
+</p>
+
 </div>
 
-<!-- FRAUD PATTERN ANALYSIS -->
+<div class="chart-container">
+
+<canvas id="severityChart"></canvas>
+
+</div>
+
+</div>
+
+</div>
+
+
+<!-- =================================
+     FRAUD PATTERN ANALYSIS
+================================= -->
 
 <section class="section">
 
-<div class="section-header">
+    <div class="section-header">
 
-<div class="section-title">
+        <div class="section-title">
 
-<h3>
-🔎 Fraud Pattern Analysis
-</h3>
+            <h3>
+                🔎 Fraud Pattern Analysis
+            </h3>
 
-<span>
-Distribution of detected fraud patterns
-</span>
+            <span>
+                Distribution of detected fraud patterns
+            </span>
+
+        </div>
+
+    </div>
+
+    <div
+        style="
+            padding:24px;
+            height:360px;
+            position:relative;
+        "
+    >
+
+        <div
+    style="
+        display:grid;
+        grid-template-columns:1fr 1fr;
+        gap:20px;
+        height:100%;
+    "
+>
+
+    <div style="position:relative;">
+        <canvas id="patternChart"></canvas>
+    </div>
+
+    <div style="position:relative;">
+        <canvas id="patternAmountChart"></canvas>
+    </div>
 
 </div>
 
-</div>
-
-<div class="pattern-wrapper">
-
-<canvas id="patternChart"></canvas>
-
-</div>
+    </div>
 
 </section>
 
-<!-- FRAUD NETWORK -->
+<!-- =================================
+     FRAUD NETWORK
+================================= -->
 
 <section class="section">
 
@@ -783,6 +1282,7 @@ Suspicious account and transaction relationships
 
 </div>
 
+
 <div class="network-wrapper">
 
 <div id="fraudNetwork"></div>
@@ -801,19 +1301,25 @@ Suspicious account and transaction relationships
 Loading fraud network...
 </div>
 
+
 <div class="network-legend">
 
 <div class="legend-item">
 
-<span class="legend-dot legend-account"></span>
+<span
+    class="legend-dot legend-account"
+></span>
 
 Account
 
 </div>
 
+
 <div class="legend-item">
 
-<span class="legend-dot legend-transaction"></span>
+<span
+    class="legend-dot legend-transaction"
+></span>
 
 Fraud Transaction
 
@@ -825,7 +1331,10 @@ Fraud Transaction
 
 </section>
 
-<!-- FRAUD ALERTS -->
+
+<!-- =================================
+     FRAUD ALERTS
+================================= -->
 
 <section class="section">
 
@@ -843,6 +1352,7 @@ Click an account to inspect details
 
 </div>
 
+
 <input
     id="alertSearch"
     class="search-box"
@@ -853,6 +1363,7 @@ Click an account to inspect details
 
 </div>
 
+
 <div class="table-wrapper">
 
 <table>
@@ -860,15 +1371,18 @@ Click an account to inspect details
 <thead>
 
 <tr>
+
 <th>Account</th>
 <th>Receivers</th>
 <th>Fraud Transactions</th>
 <th>Fraud Amount</th>
 <th>Risk Score</th>
 <th>Severity</th>
+
 </tr>
 
 </thead>
+
 
 <tbody id="alertTable">
 
@@ -891,7 +1405,10 @@ Loading alerts...
 
 </section>
 
-<!-- RISK ACCOUNTS -->
+
+<!-- =================================
+     RISK ACCOUNTS
+================================= -->
 
 <section class="section">
 
@@ -911,6 +1428,7 @@ Graph-based risk scoring
 
 </div>
 
+
 <div class="table-wrapper">
 
 <table>
@@ -918,14 +1436,17 @@ Graph-based risk scoring
 <thead>
 
 <tr>
+
 <th>Account</th>
 <th>Fraud Transactions</th>
 <th>Fraud Amount</th>
 <th>Risk Score</th>
 <th>Category</th>
+
 </tr>
 
 </thead>
+
 
 <tbody id="riskTable">
 
@@ -948,7 +1469,10 @@ Loading...
 
 </section>
 
-<!-- FRAUD HUBS -->
+
+<!-- =================================
+     FRAUD HUBS
+================================= -->
 
 <section class="section">
 
@@ -968,6 +1492,7 @@ Suspicious receiving accounts
 
 </div>
 
+
 <div class="table-wrapper">
 
 <table>
@@ -975,13 +1500,16 @@ Suspicious receiving accounts
 <thead>
 
 <tr>
+
 <th>Fraud Hub</th>
 <th>Unique Senders</th>
 <th>Fraud Transactions</th>
 <th>Total Fraud Amount</th>
+
 </tr>
 
 </thead>
+
 
 <tbody id="hubTable">
 
@@ -1004,7 +1532,10 @@ Loading...
 
 </section>
 
-<!-- FRAUD TRANSACTIONS -->
+
+<!-- =================================
+     FRAUD TRANSACTIONS
+================================= -->
 
 <section class="section">
 
@@ -1024,6 +1555,7 @@ Highest-value suspicious activity
 
 </div>
 
+
 <div class="table-wrapper">
 
 <table>
@@ -1031,15 +1563,18 @@ Highest-value suspicious activity
 <thead>
 
 <tr>
+
 <th>Transaction ID</th>
 <th>Sender</th>
 <th>Receiver</th>
 <th>Amount</th>
 <th>Country</th>
 <th>Pattern</th>
+
 </tr>
 
 </thead>
+
 
 <tbody id="fraudTable">
 
@@ -1062,9 +1597,13 @@ Loading...
 
 </section>
 
+
 </main>
 
-<!-- ACCOUNT DETAILS MODAL -->
+
+<!-- =================================
+     ACCOUNT DETAILS MODAL
+================================= -->
 
 <div
     class="account-modal"
@@ -1072,6 +1611,7 @@ Loading...
 >
 
 <div class="modal-content">
+
 
 <div class="modal-header">
 
@@ -1087,6 +1627,7 @@ Fraud activity and transaction history
 
 </div>
 
+
 <button
     class="close-btn"
     onclick="closeAccountDetails()"
@@ -1095,6 +1636,7 @@ Fraud activity and transaction history
 </button>
 
 </div>
+
 
 <div
     class="modal-body"
@@ -1111,6 +1653,7 @@ Loading account details...
 
 </div>
 
+
 <footer>
 
 FinGraph Fraud Intelligence Platform
@@ -1122,26 +1665,39 @@ Last updated: —
 </span>
 
 </footer>
+
+
 <script>
 
-const API = "http://127.0.0.1:8000";
+
+// ==========================================
+// CONFIGURATION
+// ==========================================
+
+const API =
+    "http://127.0.0.1:8000";
+
 
 let allAlerts = [];
 
 let fraudChart = null;
 let riskChart = null;
+let severityChart = null;
 let patternChart = null;
+let patternAmountChart = null;
 let fraudNetwork = null;
 
 
-/* ==========================================
-   HELPERS
-========================================== */
+// ==========================================
+// HELPERS
+// ==========================================
 
 function formatCurrency(value) {
 
     return "₹" +
-        Number(value || 0).toLocaleString(
+        Number(
+            value || 0
+        ).toLocaleString(
             "en-IN",
             {
                 maximumFractionDigits: 2
@@ -1154,51 +1710,75 @@ function formatCurrency(value) {
 function badge(category) {
 
     const value =
-        String(category || "LOW").toUpperCase();
+        String(
+            category || "LOW"
+        ).toUpperCase();
+
 
     return `
-        <span class="badge ${value.toLowerCase()}">
+
+        <span
+            class="badge ${value.toLowerCase()}"
+        >
             ${value}
         </span>
+
     `;
 
 }
 
 
-/* ==========================================
-   STATISTICS
-========================================== */
+// ==========================================
+// STATISTICS
+// ==========================================
 
 async function loadStatistics() {
 
     const response =
-        await fetch(`${API}/statistics`);
+        await fetch(
+            `${API}/statistics`
+        );
+
 
     if (!response.ok) {
-        throw new Error("Statistics API failed");
+
+        throw new Error(
+            "Statistics API failed"
+        );
+
     }
+
 
     const data =
         await response.json();
 
+
     if (data.error) {
-        throw new Error(data.error);
+
+        throw new Error(
+            data.error
+        );
+
     }
+
 
     document.getElementById(
         "totalTransactions"
     ).textContent =
         data.total_transactions;
 
+
     document.getElementById(
         "fraudTransactions"
     ).textContent =
         data.fraud_transactions;
 
+
     document.getElementById(
         "fraudPercentage"
     ).textContent =
         data.fraud_percentage + "%";
+
 
     document.getElementById(
         "fraudAmount"
@@ -1206,6 +1786,7 @@ async function loadStatistics() {
         formatCurrency(
             data.total_fraud_amount
         );
+
 
     createFraudChart(
         data.total_transactions,
@@ -1215,61 +1796,84 @@ async function loadStatistics() {
 }
 
 
-/* ==========================================
-   FRAUD CHART
-========================================== */
+// ==========================================
+// FRAUD CHART
+// ==========================================
 
-function createFraudChart(total, fraud) {
+function createFraudChart(
+    total,
+    fraud
+) {
 
-    const legitimate = total - fraud;
+    const legitimate =
+        total - fraud;
+
 
     if (fraudChart) {
+
         fraudChart.destroy();
+
     }
 
-    fraudChart = new Chart(
-        document.getElementById("fraudChart"),
-        {
 
-            type: "doughnut",
+    fraudChart =
+        new Chart(
+            document.getElementById(
+                "fraudChart"
+            ),
+            {
 
-            data: {
+                type: "doughnut",
 
-                labels: [
-                    "Legitimate",
-                    "Fraud"
-                ],
+                data: {
 
-                datasets: [{
-                    data: [
-                        legitimate,
-                        fraud
+                    labels: [
+                        "Legitimate",
+                        "Fraud"
                     ],
 
-                    backgroundColor: [
-                        "#22c55e",
-                        "#ef4444"
-                    ],
+                    datasets: [
 
-                    borderWidth: 0
-                }]
+                        {
 
-            },
+                            data: [
+                                legitimate,
+                                fraud
+                            ],
 
-            options: {
+                            backgroundColor: [
+                                "#22c55e",
+                                "#ef4444"
+                            ],
 
-                responsive: true,
+                            borderWidth: 0
 
-                maintainAspectRatio: false,
+                        }
 
-                plugins: {
+                    ]
 
-                    legend: {
+                },
 
-                        position: "bottom",
 
-                        labels: {
-                            color: "#cbd5e1"
+                options: {
+
+                    responsive: true,
+
+                    maintainAspectRatio: false,
+
+                    plugins: {
+
+                        legend: {
+
+                            position: "bottom",
+
+                            labels: {
+
+                                color:
+                                    "#cbd5e1"
+
+                            }
+
                         }
 
                     }
@@ -1277,40 +1881,54 @@ function createFraudChart(total, fraud) {
                 }
 
             }
-
-        }
-    );
+        );
 
 }
 
 
-/* ==========================================
-   FRAUD ALERTS
-========================================== */
+// ==========================================
+// ALERTS
+// ==========================================
 
 async function loadAlerts() {
 
     const response =
-        await fetch(`${API}/alerts`);
+        await fetch(
+            `${API}/alerts`
+        );
+
 
     if (!response.ok) {
-        throw new Error("Alerts API failed");
+
+        throw new Error(
+            "Alerts API failed"
+        );
+
     }
+
 
     const data =
         await response.json();
 
+
     if (data.error) {
-        throw new Error(data.error);
+
+        throw new Error(
+            data.error
+        );
+
     }
+
 
     allAlerts =
         data.alerts || [];
+
 
     document.getElementById(
         "alertCount"
     ).textContent =
         data.count || 0;
+
 
     document.getElementById(
         "alertBanner"
@@ -1319,293 +1937,117 @@ async function loadAlerts() {
             ? "block"
             : "none";
 
-    renderAlerts(allAlerts);
+
+    renderAlerts(
+        allAlerts
+    );
 
 }
 
 
-function renderAlerts(alerts) {
+// ==========================================
+// RENDER ALERTS
+// ==========================================
+
+function renderAlerts(
+    alerts
+) {
 
     const table =
         document.getElementById(
             "alertTable"
         );
 
+
     table.innerHTML = "";
+
 
     if (!alerts.length) {
 
         table.innerHTML = `
+
             <tr>
-                <td colspan="6" class="loading">
+
+                <td
+                    colspan="6"
+                    class="loading"
+                >
                     No alerts found.
                 </td>
+
             </tr>
+
         `;
 
         return;
+
     }
 
-    alerts.forEach(alert => {
 
-        const row =
-            document.createElement("tr");
+    alerts.forEach(
+        alert => {
 
-        const account =
-            String(alert.account);
+            const row =
+                document.createElement(
+                    "tr"
+                );
 
-        row.innerHTML = `
 
-            <td>
+            const account =
+                String(
+                    alert.account
+                );
 
-                <button
-                    class="account-btn"
-                    onclick="showAccountDetails('${account}')"
-                >
-                    ${account}
-                </button>
 
-            </td>
+            row.innerHTML = `
 
-            <td>
-                ${(alert.receivers || []).join(", ")}
-            </td>
+                <td>
 
-            <td>
-                ${alert.fraud_transactions}
-            </td>
+                    <button
+                        class="account-btn"
+                        onclick="showAccountDetails('${account}')"
+                    >
+                        ${account}
+                    </button>
 
-            <td>
-                ${formatCurrency(
-                    alert.total_fraud_amount
-                )}
-            </td>
+                </td>
 
-            <td class="score">
-                ${alert.risk_score}
-            </td>
 
-            <td>
-                ${badge(
-                    alert.risk_category
-                )}
-            </td>
-        `;
+                <td>
+                    ${(alert.receivers || [])
+                        .join(", ")}
+                </td>
 
-        table.appendChild(row);
 
-    });
+                <td>
+                    ${alert.fraud_transactions}
+                </td>
 
-}
 
+                <td>
+                    ${formatCurrency(
+                        alert.total_fraud_amount
+                    )}
+                </td>
 
-function filterAlerts() {
 
-    const search =
-        document.getElementById(
-            "alertSearch"
-        ).value.toLowerCase();
+                <td class="score">
+                    ${alert.risk_score}
+                </td>
 
-    const filtered =
-        allAlerts.filter(alert =>
-            String(alert.account)
-                .toLowerCase()
-                .includes(search)
-        );
 
-    renderAlerts(filtered);
+                <td>
+                    ${badge(
+                        alert.risk_category
+                    )}
+                </td>
 
-}
+            `;
 
 
-/* ==========================================
-   RISK ACCOUNTS
-========================================== */
-
-async function loadRiskAccounts() {
-
-    const response =
-        await fetch(`${API}/risk-accounts`);
-
-    if (!response.ok) {
-        throw new Error(
-            "Risk accounts API failed"
-        );
-    }
-
-    const data =
-        await response.json();
-
-    if (data.error) {
-        throw new Error(data.error);
-    }
-
-    const table =
-        document.getElementById(
-            "riskTable"
-        );
-
-    table.innerHTML = "";
-
-    const counts = {
-        CRITICAL: 0,
-        HIGH: 0,
-        MEDIUM: 0,
-        LOW: 0
-    };
-
-    data.forEach(account => {
-
-        const category =
-            String(
-                account.risk_category
-            ).toUpperCase();
-
-        if (counts[category] !== undefined) {
-            counts[category]++;
-        }
-
-        const row =
-            document.createElement("tr");
-
-        row.innerHTML = `
-
-            <td>
-
-                <button
-                    class="account-btn"
-                    onclick="showAccountDetails('${account.account}')"
-                >
-                    ${account.account}
-                </button>
-
-            </td>
-
-            <td>
-                ${account.fraud_transactions}
-            </td>
-
-            <td>
-                ${formatCurrency(
-                    account.total_fraud_amount
-                )}
-            </td>
-
-            <td class="score">
-                ${account.risk_score}
-            </td>
-
-            <td>
-                ${badge(
-                    account.risk_category
-                )}
-            </td>
-
-        `;
-
-        table.appendChild(row);
-
-    });
-
-    createRiskChart(counts);
-
-}
-
-
-/* ==========================================
-   RISK CHART
-========================================== */
-
-function createRiskChart(counts) {
-
-    if (riskChart) {
-        riskChart.destroy();
-    }
-
-    riskChart = new Chart(
-        document.getElementById("riskChart"),
-        {
-
-            type: "bar",
-
-            data: {
-
-                labels: [
-                    "Critical",
-                    "High",
-                    "Medium",
-                    "Low"
-                ],
-
-                datasets: [{
-
-                    data: [
-                        counts.CRITICAL,
-                        counts.HIGH,
-                        counts.MEDIUM,
-                        counts.LOW
-                    ],
-
-                    backgroundColor: [
-                        "#ef4444",
-                        "#f97316",
-                        "#f59e0b",
-                        "#22c55e"
-                    ],
-
-                    borderRadius: 7,
-
-                    borderWidth: 0
-
-                }]
-
-            },
-
-            options: {
-
-                responsive: true,
-
-                maintainAspectRatio: false,
-
-                plugins: {
-                    legend: {
-                        display: false
-                    }
-                },
-
-                scales: {
-
-                    x: {
-
-                        ticks: {
-                            color: "#94a3b8"
-                        },
-
-                        grid: {
-                            display: false
-                        }
-
-                    },
-
-                    y: {
-
-                        beginAtZero: true,
-
-                        ticks: {
-                            color: "#94a3b8",
-                            precision: 0
-                        },
-
-                        grid: {
-                            color:
-                                "rgba(148,163,184,.1)"
-                        }
-
-                    }
-
-                }
-
-            }
+            table.appendChild(
+                row
+            );
 
         }
     );
@@ -1613,258 +2055,247 @@ function createRiskChart(counts) {
 }
 
 
-/* ==========================================
-   FRAUD HUBS
-========================================== */
+// ==========================================
+// SEARCH ALERTS
+// ==========================================
 
-async function loadFraudHubs() {
+function filterAlerts() {
 
-    const response =
-        await fetch(`${API}/fraud-hubs`);
-
-    if (!response.ok) {
-        throw new Error(
-            "Fraud hubs API failed"
-        );
-    }
-
-    const data =
-        await response.json();
-
-    if (data.error) {
-        throw new Error(data.error);
-    }
-
-    const table =
+    const search =
         document.getElementById(
-            "hubTable"
+            "alertSearch"
+        )
+        .value
+        .toLowerCase();
+
+
+    const filtered =
+        allAlerts.filter(
+            alert =>
+                String(
+                    alert.account
+                )
+                .toLowerCase()
+                .includes(search)
         );
 
-    table.innerHTML = "";
 
-    data.forEach(hub => {
-
-        const row =
-            document.createElement("tr");
-
-        row.innerHTML = `
-
-            <td>
-
-                <button
-                    class="account-btn"
-                    onclick="showAccountDetails('${hub.fraud_hub}')"
-                >
-                    ${hub.fraud_hub}
-                </button>
-
-            </td>
-
-            <td>
-                ${hub.unique_senders}
-            </td>
-
-            <td>
-                ${hub.fraud_transactions}
-            </td>
-
-            <td>
-                ${formatCurrency(
-                    hub.total_fraud_amount
-                )}
-            </td>
-
-        `;
-
-        table.appendChild(row);
-
-    });
+    renderAlerts(
+        filtered
+    );
 
 }
 
 
-/* ==========================================
-   FRAUD TRANSACTIONS
-========================================== */
+// ==========================================
+// RISK ACCOUNTS
+// ==========================================
 
-async function loadFraudTransactions() {
+async function loadRiskAccounts() {
 
     const response =
-        await fetch(`${API}/fraud`);
+        await fetch(
+            `${API}/risk-accounts`
+        );
+
 
     if (!response.ok) {
+
         throw new Error(
-            "Fraud API failed"
+            "Risk accounts API failed"
         );
+
     }
+
 
     const data =
         await response.json();
 
+
     if (data.error) {
-        throw new Error(data.error);
+
+        throw new Error(
+            data.error
+        );
+
     }
+
 
     const table =
         document.getElementById(
-            "fraudTable"
+            "riskTable"
         );
+
 
     table.innerHTML = "";
 
-    (data.transactions || [])
-        .slice(0, 20)
-        .forEach(transaction => {
+
+    const counts = {
+
+        CRITICAL: 0,
+        HIGH: 0,
+        MEDIUM: 0,
+        LOW: 0
+
+    };
+
+
+    data.forEach(
+        account => {
+
+            const category =
+                String(
+                    account.risk_category
+                ).toUpperCase();
+
+
+            if (
+                counts[category]
+                !== undefined
+            ) {
+
+                counts[category]++;
+
+            }
+
 
             const row =
-                document.createElement("tr");
+                document.createElement(
+                    "tr"
+                );
+
 
             row.innerHTML = `
 
                 <td>
-                    ${transaction.transaction_id}
-                </td>
-
-                <td>
 
                     <button
                         class="account-btn"
-                        onclick="showAccountDetails('${transaction.sender}')"
+                        onclick="showAccountDetails('${account.account}')"
                     >
-                        ${transaction.sender}
+                        ${account.account}
                     </button>
 
                 </td>
 
+
                 <td>
-
-                    <button
-                        class="account-btn"
-                        onclick="showAccountDetails('${transaction.receiver}')"
-                    >
-                        ${transaction.receiver}
-                    </button>
-
+                    ${account.fraud_transactions}
                 </td>
+
 
                 <td>
                     ${formatCurrency(
-                        transaction.amount
+                        account.total_fraud_amount
                     )}
                 </td>
 
-                <td>
-                    ${transaction.country || "—"}
+
+                <td class="score">
+                    ${account.risk_score}
                 </td>
 
+
                 <td>
-                    ${transaction.fraud_pattern || "—"}
+                    ${badge(
+                        account.risk_category
+                    )}
                 </td>
 
             `;
 
-            table.appendChild(row);
 
-        });
+            table.appendChild(
+                row
+            );
+
+        }
+    );
+
+
+    createRiskChart(
+        counts
+    );
+
+    createSeverityChart(
+        counts
+    );
 
 }
 
 
-/* ==========================================
-   FRAUD PATTERN ANALYSIS
-========================================== */
+// ==========================================
+// RISK CHART
+// ==========================================
 
-async function loadFraudPatterns() {
+function createRiskChart(
+    counts
+) {
 
-    const response =
-        await fetch(
-            `${API}/fraud-patterns`
-        );
+    if (riskChart) {
 
-    if (!response.ok) {
-        throw new Error(
-            "Fraud patterns API failed"
-        );
+        riskChart.destroy();
+
     }
 
-    const data =
-        await response.json();
 
-    if (data.error) {
-        throw new Error(data.error);
-    }
-
-    const patterns =
-        data.patterns || [];
-
-    const labels =
-        patterns.map(
-            item => item.pattern
-        );
-
-    const counts =
-        patterns.map(
-            item => item.transaction_count
-        );
-
-    const canvas =
-        document.getElementById(
-            "patternChart"
-        );
-
-    if (!canvas) {
-        return;
-    }
-
-    if (patternChart) {
-        patternChart.destroy();
-    }
-
-    patternChart =
+    riskChart =
         new Chart(
-            canvas,
+            document.getElementById(
+                "riskChart"
+            ),
             {
 
                 type: "bar",
 
                 data: {
 
-                    labels: labels,
+                    labels: [
+                        "Critical",
+                        "High",
+                        "Medium",
+                        "Low"
+                    ],
 
-                    datasets: [{
+                    datasets: [
 
-                        label:
-                            "Fraud Transactions",
+                        {
 
-                        data: counts,
+                            data: [
+                                counts.CRITICAL,
+                                counts.HIGH,
+                                counts.MEDIUM,
+                                counts.LOW
+                            ],
 
-                        backgroundColor:
-                            "#ef4444",
+                            backgroundColor: [
+                                "#ef4444",
+                                "#f97316",
+                                "#f59e0b",
+                                "#22c55e"
+                            ],
 
-                        borderRadius: 7,
+                            borderRadius: 7,
 
-                        borderWidth: 0
+                            borderWidth: 0
 
-                    }]
+                        }
+
+                    ]
 
                 },
+
 
                 options: {
 
                     responsive: true,
 
-                    maintainAspectRatio:
-                        false,
+                    maintainAspectRatio: false,
 
                     plugins: {
 
                         legend: {
-
-                            labels: {
-                                color:
-                                    "#cbd5e1"
-                            }
-
+                            display: false
                         }
 
                     },
@@ -1887,14 +2318,16 @@ async function loadFraudPatterns() {
 
                         y: {
 
-                            beginAtZero: true,
+                            beginAtZero:
+                                true,
 
                             ticks: {
 
                                 color:
                                     "#94a3b8",
 
-                                precision: 0
+                                precision:
+                                    0
 
                             },
 
@@ -1917,9 +2350,629 @@ async function loadFraudPatterns() {
 }
 
 
-/* ==========================================
-   FRAUD NETWORK
-========================================== */
+// ==========================================
+// FRAUD SEVERITY CHART
+// ==========================================
+
+function createSeverityChart(
+    counts
+) {
+
+    const canvas =
+        document.getElementById(
+            "severityChart"
+        );
+
+    if (!canvas) {
+        return;
+    }
+
+    if (severityChart) {
+        severityChart.destroy();
+    }
+
+    severityChart =
+        new Chart(
+            canvas,
+            {
+
+                type: "doughnut",
+
+                data: {
+
+                    labels: [
+                        "Critical",
+                        "High",
+                        "Medium",
+                        "Low"
+                    ],
+
+                    datasets: [
+                        {
+
+                            data: [
+                                counts.CRITICAL,
+                                counts.HIGH,
+                                counts.MEDIUM,
+                                counts.LOW
+                            ],
+
+                            backgroundColor: [
+                                "#ef4444",
+                                "#f97316",
+                                "#f59e0b",
+                                "#22c55e"
+                            ],
+
+                            borderWidth: 0
+
+                        }
+                    ]
+
+                },
+
+                options: {
+
+                    responsive: true,
+
+                    maintainAspectRatio: false,
+
+                    cutout: "65%",
+
+                    plugins: {
+
+                        legend: {
+
+                            position: "bottom",
+
+                            labels: {
+                                color: "#cbd5e1"
+                            }
+
+                        }
+
+                    }
+
+                }
+
+            }
+        );
+
+}
+
+
+// ==========================================
+// FRAUD HUBS
+// ==========================================
+
+async function loadFraudHubs() {
+
+    const response =
+        await fetch(
+            `${API}/fraud-hubs`
+        );
+
+
+    if (!response.ok) {
+
+        throw new Error(
+            "Fraud hubs API failed"
+        );
+
+    }
+
+
+    const data =
+        await response.json();
+
+
+    const table =
+        document.getElementById(
+            "hubTable"
+        );
+
+
+    table.innerHTML = "";
+
+
+    data.forEach(
+        hub => {
+
+            const row =
+                document.createElement(
+                    "tr"
+                );
+
+
+            row.innerHTML = `
+
+                <td>
+
+                    <button
+                        class="account-btn"
+                        onclick="showAccountDetails('${hub.fraud_hub}')"
+                    >
+                        ${hub.fraud_hub}
+                    </button>
+
+                </td>
+
+
+                <td>
+                    ${hub.unique_senders}
+                </td>
+
+
+                <td>
+                    ${hub.fraud_transactions}
+                </td>
+
+
+                <td>
+                    ${formatCurrency(
+                        hub.total_fraud_amount
+                    )}
+                </td>
+
+            `;
+
+
+            table.appendChild(
+                row
+            );
+
+        }
+    );
+
+}
+
+
+// ==========================================
+// FRAUD TRANSACTIONS
+// ==========================================
+
+async function loadFraudTransactions() {
+
+    const response =
+        await fetch(
+            `${API}/fraud`
+        );
+
+
+    if (!response.ok) {
+
+        throw new Error(
+            "Fraud API failed"
+        );
+
+    }
+
+
+    const data =
+        await response.json();
+
+
+    const table =
+        document.getElementById(
+            "fraudTable"
+        );
+
+
+    table.innerHTML = "";
+
+
+    (data.transactions || [])
+        .slice(0,20)
+        .forEach(
+            transaction => {
+
+                const row =
+                    document.createElement(
+                        "tr"
+                    );
+
+
+                row.innerHTML = `
+
+                    <td>
+                        ${transaction.transaction_id}
+                    </td>
+
+                    <td>
+
+                        <button
+                            class="account-btn"
+                            onclick="showAccountDetails('${transaction.sender}')"
+                        >
+                            ${transaction.sender}
+                        </button>
+
+                    </td>
+
+                    <td>
+
+                        <button
+                            class="account-btn"
+                            onclick="showAccountDetails('${transaction.receiver}')"
+                        >
+                            ${transaction.receiver}
+                        </button>
+
+                    </td>
+
+                    <td>
+                        ${formatCurrency(
+                            transaction.amount
+                        )}
+                    </td>
+
+                    <td>
+                        ${transaction.country || "—"}
+                    </td>
+
+                    <td>
+                        ${transaction.fraud_pattern || "—"}
+                    </td>
+
+                `;
+
+
+                table.appendChild(
+                    row
+                );
+
+            }
+        );
+
+}
+// ==========================================
+// FRAUD PATTERN ANALYSIS
+// ==========================================
+
+async function loadFraudPatterns() {
+
+    const response =
+        await fetch(
+            `${API}/fraud-patterns`
+        );
+
+
+    if (!response.ok) {
+
+        throw new Error(
+            "Fraud patterns API failed"
+        );
+
+    }
+
+
+    const data =
+        await response.json();
+
+
+    if (data.error) {
+
+        throw new Error(
+            data.error
+        );
+
+    }
+
+
+    const patterns =
+        data.patterns || [];
+
+
+    const labels =
+        patterns.map(
+            item =>
+                item.pattern
+        );
+
+
+    const counts =
+        patterns.map(
+            item =>
+                item.transaction_count
+        );
+
+
+    const amounts =
+        patterns.map(
+            item =>
+                item.total_amount
+        );
+
+
+    const canvas =
+        document.getElementById(
+            "patternChart"
+        );
+
+
+    const amountCanvas =
+        document.getElementById(
+            "patternAmountChart"
+        );
+
+
+    if (!canvas) {
+
+        return;
+
+    }
+
+
+    if (patternChart) {
+
+        patternChart.destroy();
+
+    }
+
+
+    if (patternAmountChart) {
+
+        patternAmountChart.destroy();
+
+    }
+    
+
+    // ======================================
+    // FRAUD TRANSACTION COUNT CHART
+    // ======================================
+
+    patternChart =
+        new Chart(
+            canvas,
+            {
+
+                type: "bar",
+
+                data: {
+
+                    labels: labels,
+
+                    datasets: [
+
+                        {
+
+                            label:
+                                "Fraud Transactions",
+
+                            data:
+                                counts,
+
+                            backgroundColor:
+                                "#ef4444",
+
+                            borderRadius:
+                                7,
+
+                            borderWidth:
+                                0
+
+                        }
+
+                    ]
+
+                },
+
+
+                options: {
+
+                    responsive: true,
+
+                    maintainAspectRatio:
+                        false,
+
+                    plugins: {
+
+                        legend: {
+
+                            labels: {
+
+                                color:
+                                    "#cbd5e1"
+
+                            }
+
+                        }
+
+                    },
+
+
+                    scales: {
+
+                        x: {
+
+                            ticks: {
+
+                                color:
+                                    "#94a3b8"
+
+                            },
+
+                            grid: {
+
+                                display:
+                                    false
+
+                            }
+
+                        },
+
+
+                        y: {
+
+                            beginAtZero:
+                                true,
+
+                            ticks: {
+
+                                color:
+                                    "#94a3b8",
+
+                                precision:
+                                    0
+
+                            },
+
+                            grid: {
+
+                                color:
+                                    "rgba(148,163,184,.1)"
+
+                            }
+
+                        }
+
+                    }
+
+                }
+
+            }
+
+        );
+
+
+    // ======================================
+    // FRAUD AMOUNT BY PATTERN CHART
+    // ======================================
+
+    if (amountCanvas) {
+
+        patternAmountChart =
+            new Chart(
+                amountCanvas,
+                {
+
+                    type: "bar",
+
+                    data: {
+
+                        labels:
+                            labels,
+
+                        datasets: [
+
+                            {
+
+                                label:
+                                    "Fraud Amount",
+
+                                data:
+                                    amounts,
+
+                                backgroundColor:
+                                    "#a78bfa",
+
+                                borderRadius:
+                                    7,
+
+                                borderWidth:
+                                    0
+
+                            }
+
+                        ]
+
+                    },
+
+
+                    options: {
+
+                        responsive:
+                            true,
+
+                        maintainAspectRatio:
+                            false,
+
+                        plugins: {
+
+                            legend: {
+
+                                labels: {
+
+                                    color:
+                                        "#cbd5e1"
+
+                                }
+
+                            }
+
+                        },
+
+
+                        scales: {
+
+                            x: {
+
+                                ticks: {
+
+                                    color:
+                                        "#94a3b8"
+
+                                },
+
+                                grid: {
+
+                                    display:
+                                        false
+
+                                }
+
+                            },
+
+
+                            y: {
+
+                                beginAtZero:
+                                    true,
+
+                                ticks: {
+
+                                    color:
+                                        "#94a3b8",
+
+                                    callback:
+                                        function(value) {
+
+                                            return "₹" +
+                                                Number(
+                                                    value
+                                                ).toLocaleString(
+                                                    "en-IN"
+                                                );
+
+                                        }
+
+                                },
+
+
+                                grid: {
+
+                                    color:
+                                        "rgba(148,163,184,.1)"
+
+                                }
+
+                            }
+
+                        }
+
+                    }
+
+                }
+
+            );
+
+    }
+
+}
+
+// ==========================================
+// FRAUD NETWORK
+// ==========================================
 
 async function loadFraudNetwork() {
 
@@ -1928,28 +2981,36 @@ async function loadFraudNetwork() {
             `${API}/fraud-network`
         );
 
+
     if (!response.ok) {
+
         throw new Error(
             "Fraud network API failed"
         );
+
     }
+
 
     const data =
         await response.json();
+
 
     const loading =
         document.getElementById(
             "networkLoading"
         );
 
+
     if (loading) {
         loading.remove();
     }
+
 
     const container =
         document.getElementById(
             "fraudNetwork"
         );
+
 
     if (
         !data.nodes ||
@@ -1973,68 +3034,86 @@ async function loadFraudNetwork() {
         `;
 
         return;
+
     }
+
 
     const nodes =
         new vis.DataSet(
-            data.nodes.map(node => {
+            data.nodes.map(
+                node => {
 
-                const transaction =
-                    node.type === "TRANSACTION";
+                    const transaction =
+                        node.type ===
+                        "TRANSACTION";
 
-                return {
 
-                    id: node.id,
+                    return {
 
-                    label: node.label,
+                        id:
+                            node.id,
 
-                    shape:
-                        transaction
-                            ? "box"
-                            : "dot",
+                        label:
+                            node.label,
 
-                    size:
-                        transaction
-                            ? 12
-                            : 19,
+                        shape:
+                            transaction
+                                ? "box"
+                                : "dot",
 
-                    color:
-                        transaction
-                            ? {
-                                background:
-                                    "#38bdf8",
-                                border:
-                                    "#7dd3fc"
-                            }
-                            : {
-                                background:
-                                    "#ef4444",
-                                border:
-                                    "#fca5a5"
-                            },
+                        size:
+                            transaction
+                                ? 12
+                                : 19,
 
-                    font: {
-                        color: "#e2e8f0",
-                        size: 11
-                    },
+                        color:
+                            transaction
+                                ? {
+                                    background:
+                                        "#38bdf8",
+                                    border:
+                                        "#7dd3fc"
+                                }
+                                : {
+                                    background:
+                                        "#ef4444",
+                                    border:
+                                        "#fca5a5"
+                                },
 
-                    shadow: true
+                        font: {
 
-                };
+                            color:
+                                "#e2e8f0",
 
-            })
+                            size:
+                                11
+
+                        },
+
+                        shadow:
+                            true
+
+                    };
+
+                }
+            )
         );
+
 
     const edges =
         new vis.DataSet(
             data.edges.map(
-                (edge, index) => ({
+                (edge,index) => ({
 
-                    id: index,
+                    id:
+                        index,
 
-                    from: edge.source,
+                    from:
+                        edge.source,
 
-                    to: edge.target,
+                    to:
+                        edge.target,
 
                     label:
                         "₹" +
@@ -2044,11 +3123,13 @@ async function loadFraudNetwork() {
                             "en-IN"
                         ),
 
-                    arrows: "to",
+                    arrows:
+                        "to",
 
                     color: {
 
-                        color: "#64748b",
+                        color:
+                            "#64748b",
 
                         highlight:
                             "#38bdf8",
@@ -2062,24 +3143,32 @@ async function loadFraudNetwork() {
             )
         );
 
+
     fraudNetwork =
         new vis.Network(
 
             container,
 
             {
-                nodes: nodes,
-                edges: edges
+                nodes:
+                    nodes,
+
+                edges:
+                    edges
             },
 
             {
 
                 physics: {
 
-                    enabled: true,
+                    enabled:
+                        true,
 
                     stabilization: {
-                        iterations: 150
+
+                        iterations:
+                            150
+
                     },
 
                     barnesHut: {
@@ -2105,20 +3194,29 @@ async function loadFraudNetwork() {
 
                 interaction: {
 
-                    hover: true,
+                    hover:
+                        true,
 
                     navigationButtons:
                         true,
 
-                    zoomView: true,
+                    zoomView:
+                        true,
 
-                    dragView: true
+                    dragView:
+                        true
 
                 }
 
             }
 
         );
+
+
+    /*
+       Click account nodes
+       to open details.
+    */
 
     fraudNetwork.on(
         "doubleClick",
@@ -2130,14 +3228,17 @@ async function loadFraudNetwork() {
                 return;
             }
 
+
             const nodeId =
                 params.nodes[0];
+
 
             const node =
                 data.nodes.find(
                     item =>
                         item.id === nodeId
                 );
+
 
             if (
                 node &&
@@ -2156,9 +3257,9 @@ async function loadFraudNetwork() {
 }
 
 
-/* ==========================================
-   ACCOUNT DETAILS
-========================================== */
+// ==========================================
+// ACCOUNT DETAILS
+// ==========================================
 
 async function showAccountDetails(
     accountId
@@ -2169,18 +3270,22 @@ async function showAccountDetails(
             "accountModal"
         );
 
+
     const title =
         document.getElementById(
             "accountModalTitle"
         );
+
 
     const content =
         document.getElementById(
             "accountDetailsContent"
         );
 
+
     title.textContent =
         `${accountId} — Account Details`;
+
 
     content.innerHTML = `
 
@@ -2190,7 +3295,11 @@ async function showAccountDetails(
 
     `;
 
-    modal.classList.add("show");
+
+    modal.classList.add(
+        "show"
+    );
+
 
     try {
 
@@ -2199,14 +3308,19 @@ async function showAccountDetails(
                 `${API}/account/${encodeURIComponent(accountId)}`
             );
 
+
         if (!response.ok) {
+
             throw new Error(
                 "Account API failed"
             );
+
         }
+
 
         const data =
             await response.json();
+
 
         if (data.error) {
 
@@ -2216,11 +3330,8 @@ async function showAccountDetails(
                     style="
                         padding:20px;
                         color:#fca5a5;
-                        background:
-                            rgba(239,68,68,.08);
-                        border:
-                            1px solid
-                            rgba(239,68,68,.25);
+                        background:rgba(239,68,68,.08);
+                        border:1px solid rgba(239,68,68,.25);
                         border-radius:10px;
                     "
                 >
@@ -2230,11 +3341,14 @@ async function showAccountDetails(
             `;
 
             return;
+
         }
+
 
         content.innerHTML = `
 
             <div class="detail-stats">
+
 
                 <div class="stat-card">
 
@@ -2248,17 +3362,21 @@ async function showAccountDetails(
 
                 </div>
 
+
                 <div class="stat-card">
 
                     <div class="stat-label">
                         Fraud Transactions
                     </div>
 
-                    <div class="stat-value red">
+                    <div
+                        class="stat-value red"
+                    >
                         ${data.fraud_transactions}
                     </div>
 
                 </div>
+
 
                 <div class="stat-card">
 
@@ -2277,7 +3395,9 @@ async function showAccountDetails(
 
                 </div>
 
+
             </div>
+
 
             <h3
                 style="
@@ -2287,6 +3407,7 @@ async function showAccountDetails(
             >
                 Transaction History
             </h3>
+
 
             <div class="table-wrapper">
 
@@ -2319,6 +3440,7 @@ async function showAccountDetails(
                         </tr>
 
                     </thead>
+
 
                     <tbody>
 
@@ -2405,6 +3527,7 @@ async function showAccountDetails(
 
         `;
 
+
     } catch (error) {
 
         console.error(
@@ -2412,17 +3535,15 @@ async function showAccountDetails(
             error
         );
 
+
         content.innerHTML = `
 
             <div
                 style="
                     padding:20px;
                     color:#fca5a5;
-                    background:
-                        rgba(239,68,68,.08);
-                    border:
-                        1px solid
-                        rgba(239,68,68,.25);
+                    background:rgba(239,68,68,.08);
+                    border:1px solid rgba(239,68,68,.25);
                     border-radius:10px;
                 "
             >
@@ -2436,15 +3557,18 @@ async function showAccountDetails(
 }
 
 
-/* ==========================================
-   CLOSE MODAL
-========================================== */
+// ==========================================
+// CLOSE MODAL
+// ==========================================
 
 function closeAccountDetails() {
 
     document.getElementById(
         "accountModal"
-    ).classList.remove("show");
+    )
+    .classList.remove(
+        "show"
+    );
 
 }
 
@@ -2458,17 +3582,22 @@ document.addEventListener(
                 "accountModal"
             );
 
-        if (event.target === modal) {
+
+        if (
+            event.target === modal
+        ) {
+
             closeAccountDetails();
+
         }
 
     }
 );
 
 
-/* ==========================================
-   MAIN DASHBOARD
-========================================== */
+// ==========================================
+// MAIN DASHBOARD
+// ==========================================
 
 async function loadDashboard() {
 
@@ -2477,15 +3606,18 @@ async function loadDashboard() {
             "connectionStatus"
         );
 
+
     const dot =
         document.getElementById(
             "statusDot"
         );
 
+
     try {
 
         status.textContent =
             "Connecting...";
+
 
         await loadStatistics();
 
@@ -2496,25 +3628,28 @@ async function loadDashboard() {
         await loadFraudHubs();
 
         await loadFraudTransactions();
-
         await loadFraudPatterns();
-
         await loadFraudNetwork();
+
 
         status.textContent =
             "API Connected";
 
+
         dot.style.background =
             "#22c55e";
 
+
         dot.style.boxShadow =
             "0 0 12px #22c55e";
+
 
         document.getElementById(
             "lastUpdated"
         ).textContent =
             "Last updated: " +
             new Date().toLocaleString();
+
 
     } catch(error) {
 
@@ -2523,11 +3658,14 @@ async function loadDashboard() {
             error
         );
 
+
         status.textContent =
             "API Disconnected";
 
+
         dot.style.background =
             "#ef4444";
+
 
         dot.style.boxShadow =
             "0 0 12px #ef4444";
@@ -2537,9 +3675,9 @@ async function loadDashboard() {
 }
 
 
-/* ==========================================
-   START
-========================================== */
+// ==========================================
+// START
+// ==========================================
 
 loadDashboard();
 
