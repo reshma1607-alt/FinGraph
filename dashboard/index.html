@@ -1205,6 +1205,48 @@ Distribution of detected risk levels
 </div>
 
 </div>
+<div class="chart-card">
+
+    <div class="chart-title">
+
+        <h3>
+            📈 Fraud Trend Analysis
+        </h3>
+
+        <p>
+            Fraud activity over time
+        </p>
+
+    </div>
+
+    <div class="chart-container">
+
+        <canvas id="fraudTrendChart"></canvas>
+
+    </div>
+
+</div>
+<div class="chart-card">
+
+    <div class="chart-title">
+
+        <h3>
+            🌍 Country-wise Fraud Analysis
+        </h3>
+
+        <p>
+            Fraud transactions by country
+        </p>
+
+    </div>
+
+    <div class="chart-container">
+
+        <canvas id="fraudCountryChart"></canvas>
+
+    </div>
+
+</div>
 
 
 <!-- =================================
@@ -2834,7 +2876,6 @@ async function loadFraudPatterns() {
 
         );
 
-
     // ======================================
     // FRAUD AMOUNT BY PATTERN CHART
     // ======================================
@@ -2969,7 +3010,304 @@ async function loadFraudPatterns() {
     }
 
 }
+// ==========================================
+// FRAUD TREND ANALYSIS
+// ==========================================
 
+let fraudTrendChart = null;
+
+async function loadFraudTrends() {
+
+    try {
+
+        const response =
+            await fetch(
+                `${API}/fraud-trends`
+            );
+
+        if (!response.ok) {
+            throw new Error(
+                "Fraud trends API failed"
+            );
+        }
+
+        const data =
+            await response.json();
+
+        if (data.error) {
+            throw new Error(
+                data.error
+            );
+        }
+
+        const trends =
+            data.trends || [];
+
+        const labels =
+            trends.map(
+                item => item.date
+            );
+
+        const transactions =
+            trends.map(
+                item =>
+                    item.fraud_transactions
+            );
+
+        const amounts =
+            trends.map(
+                item =>
+                    item.fraud_amount
+            );
+
+        const canvas =
+            document.getElementById(
+                "fraudTrendChart"
+            );
+
+        if (!canvas) {
+            return;
+        }
+
+        if (fraudTrendChart) {
+            fraudTrendChart.destroy();
+        }
+
+        fraudTrendChart =
+            new Chart(
+                canvas,
+                {
+                    type: "line",
+
+                    data: {
+
+                        labels: labels,
+
+                        datasets: [
+
+                            {
+                                label:
+                                    "Fraud Transactions",
+
+                                data:
+                                    transactions,
+
+                                borderWidth: 3,
+
+                                tension: 0.35,
+
+                                fill: false
+                            }
+
+                        ]
+
+                    },
+
+                    options: {
+
+                        responsive: true,
+
+                        maintainAspectRatio:
+                            false,
+
+                        plugins: {
+
+                            legend: {
+
+                                labels: {
+                                    color:
+                                        "#cbd5e1"
+                                }
+
+                            }
+
+                        },
+
+                        scales: {
+
+                            x: {
+
+                                ticks: {
+                                    color:
+                                        "#94a3b8"
+                                },
+
+                                grid: {
+                                    display:
+                                        false
+                                }
+
+                            },
+
+                            y: {
+
+                                beginAtZero:
+                                    true,
+
+                                ticks: {
+
+                                    color:
+                                        "#94a3b8",
+
+                                    precision:
+                                        0
+
+                                }
+
+                            }
+
+                        }
+
+                    }
+
+                }
+            );
+
+    } catch (error) {
+
+        console.error(
+            "Fraud trend error:",
+            error
+        );
+
+    }
+
+
+}
+// ==========================================
+// COUNTRY-WISE FRAUD ANALYSIS
+// ==========================================
+
+let fraudCountryChart = null;
+
+async function loadFraudCountries() {
+
+    try {
+
+        const response = await fetch(
+            `${API}/fraud-countries`
+        );
+
+        if (!response.ok) {
+            throw new Error(
+                "Fraud countries API failed"
+            );
+        }
+
+        const data = await response.json();
+
+        if (data.error) {
+            throw new Error(data.error);
+        }
+
+        const countries = data.countries || [];
+
+        const labels = countries.map(
+            item => item.country
+        );
+
+        const transactions = countries.map(
+            item => item.fraud_transactions
+        );
+
+        const amounts = countries.map(
+            item => item.fraud_amount
+        );
+
+        const canvas =
+            document.getElementById(
+                "fraudCountryChart"
+            );
+
+        if (!canvas) {
+            return;
+        }
+
+        if (fraudCountryChart) {
+            fraudCountryChart.destroy();
+        }
+
+        fraudCountryChart = new Chart(
+            canvas,
+            {
+                type: "bar",
+
+                data: {
+                    labels: labels,
+
+                    datasets: [
+                        {
+                            label:
+                                "Fraud Transactions",
+
+                            data:
+                                transactions,
+
+                            backgroundColor:
+                                "#ef4444",
+
+                            borderRadius: 7
+                        }
+                    ]
+                },
+
+                options: {
+                    responsive: true,
+
+                    maintainAspectRatio: false,
+
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color:
+                                    "#cbd5e1"
+                            }
+                        }
+                    },
+
+                    scales: {
+                        x: {
+                            ticks: {
+                                color:
+                                    "#94a3b8"
+                            },
+
+                            grid: {
+                                display:
+                                    false
+                            }
+                        },
+
+                        y: {
+                            beginAtZero: true,
+
+                            ticks: {
+                                color:
+                                    "#94a3b8",
+
+                                precision: 0
+                            },
+
+                            grid: {
+                                color:
+                                    "rgba(148,163,184,.1)"
+                            }
+                        }
+                    }
+                }
+            }
+        );
+
+    } catch (error) {
+
+        console.error(
+            "Fraud country error:",
+            error
+        );
+
+    }
+
+}
 // ==========================================
 // FRAUD NETWORK
 // ==========================================
@@ -3629,6 +3967,8 @@ async function loadDashboard() {
 
         await loadFraudTransactions();
         await loadFraudPatterns();
+        await loadFraudTrends();
+        await loadFraudCountries();
         await loadFraudNetwork();
 
 
