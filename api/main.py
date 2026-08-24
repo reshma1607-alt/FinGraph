@@ -216,10 +216,10 @@ def fraud_transactions():
     query = """
     MATCH (t:Transaction)
 
-    WHERE coalesce(
-        t.fraud_status,
-        t.transaction_type
-    ) = 'FRAUD'
+    WHERE
+        t.fraud_status = 'FRAUD'
+        OR
+        t.transaction_type = 'FRAUD'
 
     RETURN
         coalesce(
@@ -239,10 +239,15 @@ def fraud_transactions():
             'Unknown'
         ) AS receiver,
 
-        coalesce(t.amount, 0) AS amount,
+        coalesce(
+            t.amount,
+            0
+        ) AS amount,
 
-        coalesce(t.country, 'Unknown')
-            AS country,
+        coalesce(
+            t.country,
+            'Unknown'
+        ) AS country,
 
         coalesce(
             t.fraud_pattern,
@@ -259,39 +264,52 @@ def fraud_transactions():
     """
 
     try:
+
         records = run_query(query)
 
         transactions = []
 
         for record in records:
+
             transactions.append({
                 "transaction_id":
-                    record["transaction_id"],
+                    str(record["transaction_id"]),
+
                 "sender":
-                    record["sender"],
+                    str(record["sender"]),
+
                 "receiver":
-                    record["receiver"],
+                    str(record["receiver"]),
+
                 "amount":
-                    safe_float(record["amount"]),
+                    safe_float(
+                        record["amount"]
+                    ),
+
                 "country":
-                    record["country"],
+                    str(record["country"]),
+
                 "fraud_pattern":
-                    record["fraud_pattern"],
+                    str(record["fraud_pattern"]),
+
                 "timestamp":
                     str(record["timestamp"])
             })
 
         return {
-            "transactions": transactions,
-            "count": len(transactions)
+            "transactions":
+                transactions,
+
+            "count":
+                len(transactions)
         }
 
     except Exception as error:
+
         return {
-            "error": str(error)
+            "error":
+                str(error)
         }
-
-
 # ==========================================
 # FRAUD ALERTS
 # ==========================================
@@ -301,83 +319,73 @@ def alerts():
 
     if driver is None:
         return neo4j_error()
-
     query = """
-    MATCH (t:Transaction)
+MATCH (sender:Account)-[:SENT]->(t:Transaction)
+OPTIONAL MATCH (receiver:Account)-[:RECEIVED_BY]->(t)
 
-    WHERE coalesce(
-        t.fraud_status,
-        t.transaction_type
-    ) = 'FRAUD'
+WHERE coalesce(
+    t.fraud_status,
+    t.transaction_type
+) = 'FRAUD'
 
-    WITH
-        coalesce(
-            t.sender_account,
-            t.sender,
-            'Unknown'
-        ) AS account,
+WITH
+    sender.id AS account,
+    collect(DISTINCT receiver.id) AS receivers,
+    count(t) AS fraud_transactions,
 
-        collect(
-            DISTINCT coalesce(
-                t.receiver_account,
-                t.receiver,
-                'Unknown'
-            )
-        ) AS receivers,
+    sum(
+        coalesce(t.amount, 0)
+    ) AS total_fraud_amount
 
-        count(t) AS fraud_transactions,
+WITH
+    account,
+    [x IN receivers WHERE x IS NOT NULL] AS receivers,
+    fraud_transactions,
+    total_fraud_amount,
 
-        sum(
-            coalesce(t.amount, 0)
-        ) AS total_fraud_amount,
+    (
+        total_fraud_amount
+        + (fraud_transactions * 1000)
+        + (size([x IN receivers WHERE x IS NOT NULL]) * 500)
+    ) AS raw_risk_score
 
-        sum(
-            coalesce(t.amount, 0)
-        ) +
-        (count(t) * 1000) +
-        (size(collect(DISTINCT
-            coalesce(
-                t.receiver_account,
-                t.receiver,
-                'Unknown'
-            )
-        )) * 500) AS raw_risk_score
+WITH
+    account,
+    receivers,
+    fraud_transactions,
+    total_fraud_amount,
 
-    WITH
-        account,
-        receivers,
-        fraud_transactions,
-        total_fraud_amount,
-        CASE
-            WHEN raw_risk_score > 100000
-                THEN 100
-            WHEN raw_risk_score / 1000.0 > 100
-                THEN 100
-            ELSE round(
-                raw_risk_score / 1000.0,
-                2
-            )
-        END AS risk_score
+    CASE
+        WHEN raw_risk_score > 100000
+            THEN 100
+        WHEN raw_risk_score / 1000.0 > 100
+            THEN 100
+        ELSE round(
+            raw_risk_score / 1000.0,
+            2
+        )
+    END AS risk_score
 
-    RETURN
-        account,
-        receivers,
-        fraud_transactions,
-        total_fraud_amount,
-        risk_score,
+RETURN
+    account,
+    receivers,
+    fraud_transactions,
+    total_fraud_amount,
+    risk_score,
 
-        CASE
-            WHEN risk_score >= 80
-                THEN 'CRITICAL'
-            WHEN risk_score >= 60
-                THEN 'HIGH'
-            WHEN risk_score >= 30
-                THEN 'MEDIUM'
-            ELSE 'LOW'
-        END AS risk_category
+    CASE
+        WHEN risk_score >= 80
+            THEN 'CRITICAL'
+        WHEN risk_score >= 60
+            THEN 'HIGH'
+        WHEN risk_score >= 30
+            THEN 'MEDIUM'
+        ELSE 'LOW'
+    END AS risk_category
 
-    ORDER BY risk_score DESC
-    """
+ORDER BY risk_score DESC
+"""
+    
 
     try:
         records = run_query(query)
@@ -428,86 +436,69 @@ def risk_accounts():
         return neo4j_error()
 
     query = """
-    MATCH (t:Transaction)
+MATCH (account:Account)-[:SENT]->(t:Transaction)
 
-    WHERE coalesce(
-        t.fraud_status,
-        t.transaction_type
-    ) = 'FRAUD'
+WHERE coalesce(
+    t.fraud_status,
+    t.transaction_type
+) = 'FRAUD'
 
-    WITH
-        coalesce(
-            t.sender_account,
-            t.sender,
-            'Unknown'
-        ) AS account,
+WITH
+    account.id AS account,
+    count(t) AS fraud_transactions,
 
-        count(t) AS fraud_transactions,
+    sum(
+        coalesce(t.amount, 0)
+    ) AS total_fraud_amount
 
-        sum(
-            coalesce(t.amount, 0)
-        ) AS total_fraud_amount,
+WITH
+    account,
+    fraud_transactions,
+    total_fraud_amount,
 
-        collect(
-            DISTINCT coalesce(
-                t.receiver_account,
-                t.receiver,
-                'Unknown'
-            )
-        ) AS receivers
-
-    WITH
-        account,
-        fraud_transactions,
-        total_fraud_amount,
-        receivers,
-
-        (
-            fraud_transactions * 10
-            +
-            size(receivers) * 5
-            +
-            CASE
-                WHEN total_fraud_amount >= 100000
-                    THEN 50
-                WHEN total_fraud_amount >= 50000
-                    THEN 30
-                WHEN total_fraud_amount >= 10000
-                    THEN 15
-                ELSE 5
-            END
-        ) AS raw_score
-
-    WITH
-        account,
-        fraud_transactions,
-        total_fraud_amount,
-        receivers,
-
+    (
+        fraud_transactions * 10
+        +
         CASE
-            WHEN raw_score > 100
-                THEN 100
-            ELSE raw_score
-        END AS risk_score
+            WHEN total_fraud_amount >= 100000
+                THEN 50
+            WHEN total_fraud_amount >= 50000
+                THEN 30
+            WHEN total_fraud_amount >= 10000
+                THEN 15
+            ELSE 5
+        END
+    ) AS raw_score
 
-    RETURN
-        account,
-        fraud_transactions,
-        total_fraud_amount,
-        risk_score,
+WITH
+    account,
+    fraud_transactions,
+    total_fraud_amount,
 
-        CASE
-            WHEN risk_score >= 80
-                THEN 'CRITICAL'
-            WHEN risk_score >= 60
-                THEN 'HIGH'
-            WHEN risk_score >= 30
-                THEN 'MEDIUM'
-            ELSE 'LOW'
-        END AS risk_category
+    CASE
+        WHEN raw_score > 100
+            THEN 100
+        ELSE raw_score
+    END AS risk_score
 
-    ORDER BY risk_score DESC
-    """
+RETURN
+    account,
+    fraud_transactions,
+    total_fraud_amount,
+    risk_score,
+
+    CASE
+        WHEN risk_score >= 80
+            THEN 'CRITICAL'
+        WHEN risk_score >= 60
+            THEN 'HIGH'
+        WHEN risk_score >= 30
+            THEN 'MEDIUM'
+        ELSE 'LOW'
+    END AS risk_category
+
+ORDER BY risk_score DESC
+"""
 
     try:
         records = run_query(query)
@@ -553,7 +544,8 @@ def fraud_hubs():
         return neo4j_error()
 
     query = """
-    MATCH (t:Transaction)
+    MATCH (t:Transaction)-[:RECEIVED_BY]->(hub:Account)
+    MATCH (sender:Account)-[:SENT]->(t)
 
     WHERE coalesce(
         t.fraud_status,
@@ -561,21 +553,9 @@ def fraud_hubs():
     ) = 'FRAUD'
 
     WITH
-        coalesce(
-            t.receiver_account,
-            t.receiver,
-            'Unknown'
-        ) AS fraud_hub,
-
-        count(
-            DISTINCT coalesce(
-                t.sender_account,
-                t.sender
-            )
-        ) AS unique_senders,
-
+        hub.id AS fraud_hub,
+        count(DISTINCT sender.id) AS unique_senders,
         count(t) AS fraud_transactions,
-
         sum(
             coalesce(t.amount, 0)
         ) AS total_fraud_amount
@@ -590,22 +570,27 @@ def fraud_hubs():
     """
 
     try:
+
         records = run_query(query)
 
         result = []
 
         for record in records:
+
             result.append({
                 "fraud_hub":
                     record["fraud_hub"],
+
                 "unique_senders":
                     int(
                         record["unique_senders"] or 0
                     ),
+
                 "fraud_transactions":
                     int(
                         record["fraud_transactions"] or 0
                     ),
+
                 "total_fraud_amount":
                     safe_float(
                         record["total_fraud_amount"]
@@ -615,10 +600,10 @@ def fraud_hubs():
         return result
 
     except Exception as error:
+
         return {
             "error": str(error)
         }
-
 
 # ==========================================
 # ACCOUNT DETAILS
@@ -854,32 +839,31 @@ def fraud_trends():
         return neo4j_error()
 
     query = """
-    MATCH (t:Transaction)
+MATCH (t:Transaction)
 
-    WHERE coalesce(
-        t.fraud_status,
-        t.transaction_type
-    ) = 'FRAUD'
+WITH
+    coalesce(
+        t.transaction_type,
+        'Unknown'
+    ) AS transaction_type,
 
-    WITH
-        coalesce(
-            t.timestamp,
-            t.date
-        ) AS transaction_date,
+    count(t) AS transactions,
 
-        count(t) AS fraud_transactions,
+    sum(
+        CASE
+            WHEN t.transaction_type = 'FRAUD'
+            THEN coalesce(t.amount, 0)
+            ELSE 0
+        END
+    ) AS fraud_amount
 
-        sum(
-            coalesce(t.amount, 0)
-        ) AS fraud_amount
+RETURN
+    transaction_type AS date,
+    transactions AS fraud_transactions,
+    fraud_amount
 
-    RETURN
-        transaction_date,
-        fraud_transactions,
-        fraud_amount
-
-    ORDER BY transaction_date
-    """
+ORDER BY transaction_type
+"""
 
     try:
         records = run_query(query)
@@ -890,9 +874,9 @@ def fraud_trends():
             data.append({
                 "date":
                     str(
-                        record["transaction_date"]
+                        record["date"]
                     )
-                    if record["transaction_date"]
+                    if record["date"]
                     else "Unknown",
 
                 "fraud_transactions":
@@ -915,6 +899,78 @@ def fraud_trends():
         return {
             "error": str(error)
         }
+# ==========================================
+# FRAUD TRANSACTIONS BY TYPE
+# ==========================================
+
+@app.get("/fraud-transaction-types")
+def fraud_transaction_types():
+
+    if driver is None:
+        return neo4j_error()
+
+    query = """
+    MATCH (t:Transaction)
+
+    WHERE coalesce(
+        t.fraud_status,
+        t.transaction_type
+    ) = 'FRAUD'
+
+    WITH
+        coalesce(
+            t.transaction_type,
+            'Unknown'
+        ) AS transaction_type,
+
+        count(t) AS fraud_transactions,
+
+        sum(
+            coalesce(t.amount, 0)
+        ) AS fraud_amount
+
+    RETURN
+        transaction_type,
+        fraud_transactions,
+        fraud_amount
+
+    ORDER BY fraud_transactions DESC
+    """
+
+    try:
+
+        records = run_query(query)
+
+        data = []
+
+        for record in records:
+
+            data.append({
+                "transaction_type":
+                    record["transaction_type"],
+
+                "fraud_transactions":
+                    int(
+                        record["fraud_transactions"]
+                        or 0
+                    ),
+
+                "fraud_amount":
+                    safe_float(
+                        record["fraud_amount"]
+                    )
+            })
+
+        return {
+            "transaction_types": data
+        }
+
+    except Exception as error:
+
+        return {
+            "error": str(error)
+        }
+    
 
 
 # ==========================================
@@ -986,7 +1042,6 @@ def fraud_countries():
             "error": str(error)
         }
 
-
 # ==========================================
 # FRAUD NETWORK
 # ==========================================
@@ -998,39 +1053,23 @@ def fraud_network():
         return neo4j_error()
 
     query = """
-    MATCH (t:Transaction)
+    MATCH (sender:Account)-[:SENT]-(t:Transaction)-[:RECEIVED_BY]-(receiver:Account)
 
     WHERE coalesce(
         t.fraud_status,
         t.transaction_type
     ) = 'FRAUD'
 
-    WITH t
-    LIMIT 250
-
-    OPTIONAL MATCH (s:Account)
-    WHERE
-        s.account_id =
-        coalesce(
-            t.sender_account,
-            t.sender
-        )
-
-    OPTIONAL MATCH (r:Account)
-    WHERE
-        r.account_id =
-        coalesce(
-            t.receiver_account,
-            t.receiver
-        )
-
     RETURN
-        t,
-        s,
-        r
+        sender.id AS sender_id,
+        receiver.id AS receiver_id,
+        t
+
+    LIMIT 250
     """
 
     try:
+
         records = run_query(query)
 
         nodes = {}
@@ -1039,8 +1078,16 @@ def fraud_network():
         for record in records:
 
             transaction = record["t"]
-            sender_node = record["s"]
-            receiver_node = record["r"]
+
+            sender = (
+                record["sender_id"]
+                or "Unknown"
+            )
+
+            receiver = (
+                record["receiver_id"]
+                or "Unknown"
+            )
 
             transaction_id = str(
                 transaction.get(
@@ -1049,31 +1096,21 @@ def fraud_network():
                 )
             )
 
-            sender = (
-                transaction.get(
-                    "sender_account"
-                )
-                or transaction.get("sender")
-                or "Unknown"
-            )
-
-            receiver = (
-                transaction.get(
-                    "receiver_account"
-                )
-                or transaction.get("receiver")
-                or "Unknown"
-            )
-
             amount = safe_float(
                 transaction.get("amount", 0)
             )
 
             sender_id = f"ACCOUNT:{sender}"
+
             receiver_id = f"ACCOUNT:{receiver}"
+
             transaction_node_id = (
                 f"TRANSACTION:{transaction_id}"
             )
+
+            # -------------------------------
+            # ACCOUNT NODES
+            # -------------------------------
 
             nodes[sender_id] = {
                 "id": sender_id,
@@ -1087,42 +1124,46 @@ def fraud_network():
                 "type": "ACCOUNT"
             }
 
+            # -------------------------------
+            # TRANSACTION NODE
+            # -------------------------------
+
             nodes[transaction_node_id] = {
                 "id": transaction_node_id,
                 "label": transaction_id[:12],
                 "type": "TRANSACTION"
             }
 
-            edges.append({
-                "source":
-                    sender_id,
-                "target":
-                    transaction_node_id,
-                "amount":
-                    amount
-            })
+            # -------------------------------
+            # SENDER → TRANSACTION
+            # -------------------------------
 
             edges.append({
-                "source":
-                    transaction_node_id,
-                "target":
-                    receiver_id,
-                "amount":
-                    amount
+                "source": sender_id,
+                "target": transaction_node_id,
+                "amount": amount
+            })
+
+            # -------------------------------
+            # TRANSACTION → RECEIVER
+            # -------------------------------
+
+            edges.append({
+                "source": transaction_node_id,
+                "target": receiver_id,
+                "amount": amount
             })
 
         return {
-            "nodes":
-                list(nodes.values()),
-            "edges":
-                edges
+            "nodes": list(nodes.values()),
+            "edges": edges
         }
 
     except Exception as error:
+
         return {
             "error": str(error)
         }
-
 
 # ==========================================
 # SHUTDOWN

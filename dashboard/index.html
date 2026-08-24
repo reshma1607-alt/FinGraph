@@ -1208,14 +1208,14 @@ Distribution of detected risk levels
 <div class="chart-card">
 
     <div class="chart-title">
-
         <h3>
-            📈 Fraud Trend Analysis
-        </h3>
+    📊 Fraud vs Normal Transactions
+</h3>
 
-        <p>
-            Fraud activity over time
-        </p>
+<p>
+    Transaction distribution by status
+</p>
+
 
     </div>
 
@@ -3015,15 +3015,13 @@ async function loadFraudPatterns() {
 // ==========================================
 
 let fraudTrendChart = null;
-
 async function loadFraudTrends() {
 
     try {
 
-        const response =
-            await fetch(
-                `${API}/fraud-trends`
-            );
+        const response = await fetch(
+            `${API}/fraud-trends`
+        );
 
         if (!response.ok) {
             throw new Error(
@@ -3031,13 +3029,10 @@ async function loadFraudTrends() {
             );
         }
 
-        const data =
-            await response.json();
+        const data = await response.json();
 
         if (data.error) {
-            throw new Error(
-                data.error
-            );
+            throw new Error(data.error);
         }
 
         const trends =
@@ -3048,16 +3043,9 @@ async function loadFraudTrends() {
                 item => item.date
             );
 
-        const transactions =
+        const values =
             trends.map(
-                item =>
-                    item.fraud_transactions
-            );
-
-        const amounts =
-            trends.map(
-                item =>
-                    item.fraud_amount
+                item => item.fraud_transactions
             );
 
         const canvas =
@@ -3077,28 +3065,30 @@ async function loadFraudTrends() {
             new Chart(
                 canvas,
                 {
-                    type: "line",
+
+                    type: "bar",
 
                     data: {
 
                         labels: labels,
 
                         datasets: [
-
                             {
                                 label:
-                                    "Fraud Transactions",
+                                    "Transactions",
 
                                 data:
-                                    transactions,
+                                    values,
 
-                                borderWidth: 3,
+                                backgroundColor:
+                                    "#38bdf8",
 
-                                tension: 0.35,
+                                borderRadius:
+                                    7,
 
-                                fill: false
+                                borderWidth:
+                                    0
                             }
-
                         ]
 
                     },
@@ -3151,7 +3141,12 @@ async function loadFraudTrends() {
 
                                     precision:
                                         0
+                                },
 
+                                grid: {
+
+                                    color:
+                                        "rgba(148,163,184,.1)"
                                 }
 
                             }
@@ -3166,14 +3161,14 @@ async function loadFraudTrends() {
     } catch (error) {
 
         console.error(
-            "Fraud trend error:",
+            "Fraud trends error:",
             error
         );
 
     }
 
-
 }
+
 // ==========================================
 // COUNTRY-WISE FRAUD ANALYSIS
 // ==========================================
