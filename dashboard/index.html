@@ -1209,11 +1209,13 @@ Distribution of detected risk levels
 
     <div class="chart-title">
         <h3>
-    📊 Fraud vs Normal Transactions
-</h3>
+            📊 Fraud Transactions by Type
+    
+        </h3>
 
 <p>
-    Transaction distribution by status
+     Fraud transactions grouped by transaction type
+
 </p>
 
 
@@ -2575,97 +2577,139 @@ async function loadFraudHubs() {
 
 async function loadFraudTransactions() {
 
-    const response =
-        await fetch(
+    try {
+
+        const response = await fetch(
             `${API}/fraud`
         );
 
+        if (!response.ok) {
+            throw new Error(
+                `Fraud API failed: ${response.status}`
+            );
+        }
 
-    if (!response.ok) {
+        const data = await response.json();
 
-        throw new Error(
-            "Fraud API failed"
-        );
+        if (data.error) {
+            throw new Error(data.error);
+        }
 
-    }
-
-
-    const data =
-        await response.json();
-
-
-    const table =
-        document.getElementById(
+        const table = document.getElementById(
             "fraudTable"
         );
 
+        if (!table) {
+            console.error(
+                "fraudTable element not found"
+            );
+            return;
+        }
 
-    table.innerHTML = "";
+        table.innerHTML = "";
 
+        const transactions =
+            data.transactions || [];
 
-    (data.transactions || [])
-        .slice(0,20)
-        .forEach(
-            transaction => {
+        transactions
+            .slice(0, 20)
+            .forEach(transaction => {
 
                 const row =
-                    document.createElement(
-                        "tr"
-                    );
+                    document.createElement("tr");
 
+                const transactionId =
+                    transaction.transaction_id ?? "—";
+
+                const sender =
+                    transaction.sender ?? "Unknown";
+
+                const receiver =
+                    transaction.receiver ?? "Unknown";
+
+                const amount =
+                    Number(transaction.amount || 0);
+
+                const country =
+                    transaction.country || "—";
+
+                const pattern =
+                    transaction.fraud_pattern || "—";
 
                 row.innerHTML = `
-
                     <td>
-                        ${transaction.transaction_id}
+                        ${transactionId}
                     </td>
 
                     <td>
-
                         <button
                             class="account-btn"
-                            onclick="showAccountDetails('${transaction.sender}')"
+                            onclick="showAccountDetails('${sender}')"
                         >
-                            ${transaction.sender}
+                            ${sender}
                         </button>
-
                     </td>
 
                     <td>
-
                         <button
                             class="account-btn"
-                            onclick="showAccountDetails('${transaction.receiver}')"
+                            onclick="showAccountDetails('${receiver}')"
                         >
-                            ${transaction.receiver}
+                            ${receiver}
                         </button>
-
                     </td>
 
                     <td>
-                        ${formatCurrency(
-                            transaction.amount
-                        )}
+                        ₹${amount.toLocaleString("en-IN")}
                     </td>
 
                     <td>
-                        ${transaction.country || "—"}
+                        ${country}
                     </td>
 
                     <td>
-                        ${transaction.fraud_pattern || "—"}
+                        ${pattern}
                     </td>
-
                 `;
 
+                table.appendChild(row);
 
-                table.appendChild(
-                    row
-                );
+            });
 
-            }
+        console.log(
+            `Fraud transactions loaded: ${transactions.length}`
         );
 
+    } catch (error) {
+
+        console.error(
+            "Fraud Transactions Error:",
+            error
+        );
+
+        const table =
+            document.getElementById("fraudTable");
+
+        if (table) {
+
+            table.innerHTML = `
+                <tr>
+                    <td
+                        colspan="6"
+                        style="
+                            text-align:center;
+                            padding:30px;
+                            color:#ef4444;
+                        "
+                    >
+                        Unable to load fraud transactions.
+                    </td>
+                </tr>
+            `;
+
+        }
+
+    }
 }
 // ==========================================
 // FRAUD PATTERN ANALYSIS
@@ -3020,12 +3064,12 @@ async function loadFraudTrends() {
     try {
 
         const response = await fetch(
-            `${API}/fraud-trends`
+            `${API}/fraud-transaction-types`
         );
 
         if (!response.ok) {
             throw new Error(
-                "Fraud trends API failed"
+                "Transaction type API failed"
             );
         }
 
@@ -3035,18 +3079,20 @@ async function loadFraudTrends() {
             throw new Error(data.error);
         }
 
-        const trends =
-            data.trends || [];
+        const types =
+            data.transaction_types || [];
 
-        const labels =
-            trends.map(
-                item => item.date
-            );
+        const labels = types.map(
+            item => item.transaction_type
+        );
 
-        const values =
-            trends.map(
-                item => item.fraud_transactions
-            );
+        const transactions = types.map(
+            item => item.fraud_transactions
+        );
+
+        const amounts = types.map(
+            item => item.fraud_amount
+        );
 
         const canvas =
             document.getElementById(
@@ -3061,114 +3107,107 @@ async function loadFraudTrends() {
             fraudTrendChart.destroy();
         }
 
-        fraudTrendChart =
-            new Chart(
-                canvas,
-                {
+        fraudTrendChart = new Chart(
+            canvas,
+            {
+                type: "bar",
 
-                    type: "bar",
+                data: {
+                    labels: labels,
 
-                    data: {
+                    datasets: [
+                        {
+                            label:
+                                "Fraud Transactions",
 
-                        labels: labels,
+                            data:
+                                transactions,
 
-                        datasets: [
-                            {
-                                label:
-                                    "Transactions",
+                            backgroundColor:
+                                "#ef4444",
 
-                                data:
-                                    values,
+                            borderRadius: 7,
 
-                                backgroundColor:
-                                    "#38bdf8",
+                            borderWidth: 0
+                        }
+                    ]
+                },
 
-                                borderRadius:
-                                    7,
+                options: {
+                    responsive: true,
 
-                                borderWidth:
-                                    0
+                    maintainAspectRatio: false,
+
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: "#cbd5e1"
                             }
-                        ]
-
-                    },
-
-                    options: {
-
-                        responsive: true,
-
-                        maintainAspectRatio:
-                            false,
-
-                        plugins: {
-
-                            legend: {
-
-                                labels: {
-                                    color:
-                                        "#cbd5e1"
-                                }
-
-                            }
-
                         },
 
-                        scales: {
+                        tooltip: {
+                            callbacks: {
+                                afterLabel:
+                                    function(context) {
 
-                            x: {
+                                        const index =
+                                            context.dataIndex;
 
-                                ticks: {
-                                    color:
-                                        "#94a3b8"
-                                },
+                                        return (
+                                            "Fraud Amount: ₹" +
+                                            Number(
+                                                amounts[index] || 0
+                                            ).toLocaleString(
+                                                "en-IN"
+                                            )
+                                        );
+                                    }
+                            }
+                        }
+                    },
 
-                                grid: {
-                                    display:
-                                        false
-                                }
-
+                    scales: {
+                        x: {
+                            ticks: {
+                                color:
+                                    "#94a3b8"
                             },
 
-                            y: {
-
-                                beginAtZero:
-                                    true,
-
-                                ticks: {
-
-                                    color:
-                                        "#94a3b8",
-
-                                    precision:
-                                        0
-                                },
-
-                                grid: {
-
-                                    color:
-                                        "rgba(148,163,184,.1)"
-                                }
-
+                            grid: {
+                                display: false
                             }
+                        },
 
+                        y: {
+                            beginAtZero: true,
+
+                            ticks: {
+                                color:
+                                    "#94a3b8",
+
+                                precision: 0
+                            },
+
+                            grid: {
+                                color:
+                                    "rgba(148,163,184,.1)"
+                            }
                         }
-
                     }
-
                 }
-            );
+            }
+        );
 
     } catch (error) {
 
         console.error(
-            "Fraud trends error:",
+            "Transaction type chart error:",
             error
         );
 
     }
 
 }
-
 // ==========================================
 // COUNTRY-WISE FRAUD ANALYSIS
 // ==========================================

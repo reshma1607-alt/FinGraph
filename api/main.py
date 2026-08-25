@@ -31,7 +31,7 @@ app.add_middleware(
 
 NEO4J_URI = os.getenv(
     "NEO4J_URI",
-    "bolt://localhost:7687"
+    "neo4j://127.0.0.1:7687"
 )
 
 NEO4J_USER = os.getenv(
@@ -214,7 +214,7 @@ def fraud_transactions():
         return neo4j_error()
 
     query = """
-    MATCH (t:Transaction)
+    MATCH (sender:Account)-[:SENT]->(t:Transaction)-[:RECEIVED_BY]->(receiver:Account)
 
     WHERE
         t.fraud_status = 'FRAUD'
@@ -228,15 +228,17 @@ def fraud_transactions():
         ) AS transaction_id,
 
         coalesce(
-            t.sender_account,
-            t.sender,
-            'Unknown'
+            sender.account_id,
+            sender.account,
+            sender.id,
+            elementId(sender)
         ) AS sender,
 
         coalesce(
-            t.receiver_account,
-            t.receiver,
-            'Unknown'
+            receiver.account_id,
+            receiver.account,
+            receiver.id,
+            elementId(receiver)
         ) AS receiver,
 
         coalesce(
@@ -320,17 +322,26 @@ def alerts():
     if driver is None:
         return neo4j_error()
     query = """
-MATCH (sender:Account)-[:SENT]->(t:Transaction)
-OPTIONAL MATCH (receiver:Account)-[:RECEIVED_BY]->(t)
-
+MATCH (sender:Account)-[:SENT]->(t:Transaction)-[:RECEIVED_BY]->(receiver:Account)
 WHERE coalesce(
     t.fraud_status,
     t.transaction_type
 ) = 'FRAUD'
 
 WITH
-    sender.id AS account,
-    collect(DISTINCT receiver.id) AS receivers,
+    coalesce(
+    sender.account_id,
+    sender.id,
+    elementId(sender)
+) AS account,
+
+collect(
+    DISTINCT coalesce(
+        receiver.account_id,
+        receiver.id,
+        elementId(receiver)
+    )
+) AS receivers,
     count(t) AS fraud_transactions,
 
     sum(
