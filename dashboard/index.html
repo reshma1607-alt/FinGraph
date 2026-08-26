@@ -1175,8 +1175,7 @@ Accounts grouped by risk category
 </div>
 
 <div class="chart-container">
-
-<canvas id="riskChart"></canvas>
+    <canvas id="riskChart"></canvas>
 
 </div>
 
@@ -1420,6 +1419,7 @@ Click an account to inspect details
 <th>Receivers</th>
 <th>Fraud Transactions</th>
 <th>Fraud Amount</th>
+<th>Hub Senders</th>
 <th>Risk Score</th>
 <th>Severity</th>
 
@@ -1433,7 +1433,7 @@ Click an account to inspect details
 <tr>
 
 <td
-    colspan="6"
+    colspan="7"
     class="loading"
 >
 Loading alerts...
@@ -1992,113 +1992,99 @@ async function loadAlerts() {
 // ==========================================
 // RENDER ALERTS
 // ==========================================
-
-function renderAlerts(
-    alerts
-) {
+function renderAlerts(alerts) {
 
     const table =
-        document.getElementById(
-            "alertTable"
-        );
-
+        document.getElementById("alertTable");
 
     table.innerHTML = "";
-
 
     if (!alerts.length) {
 
         table.innerHTML = `
-
             <tr>
-
                 <td
-                    colspan="6"
+                    colspan="7"
                     class="loading"
                 >
                     No alerts found.
                 </td>
-
             </tr>
-
         `;
 
         return;
-
     }
 
+    alerts.forEach(alert => {
 
-    alerts.forEach(
-        alert => {
+        const row =
+            document.createElement("tr");
 
-            const row =
-                document.createElement(
-                    "tr"
-                );
+        const account =
+            String(alert.account || "Unknown");
 
+        const receivers =
+            (alert.receivers || []).join(", ");
 
-            const account =
-                String(
-                    alert.account
-                );
+        const fraudTransactions =
+            alert.fraud_transactions || 0;
 
+        const fraudAmount =
+            alert.total_fraud_amount || 0;
 
-            row.innerHTML = `
+        const hubSenders =
+            alert.hub_senders || 0;
 
-                <td>
+        const riskScore =
+            alert.risk_score ?? 0;
 
-                    <button
-                        class="account-btn"
-                        onclick="showAccountDetails('${account}')"
-                    >
-                        ${account}
-                    </button>
+        const severity =
+            alert.risk_category || "LOW";
 
-                </td>
+        row.innerHTML = `
 
+            <td>
 
-                <td>
-                    ${(alert.receivers || [])
-                        .join(", ")}
-                </td>
+                <button
+                    class="account-btn"
+                    onclick="showAccountDetails('${account}')"
+                >
+                    ${account}
+                </button>
 
+            </td>
 
-                <td>
-                    ${alert.fraud_transactions}
-                </td>
+            <td>
+                ${receivers}
+            </td>
 
+            <td>
+                ${fraudTransactions}
+            </td>
 
-                <td>
-                    ${formatCurrency(
-                        alert.total_fraud_amount
-                    )}
-                </td>
+            <td>
+                ${formatCurrency(fraudAmount)}
+            </td>
 
+            <td>
+                ${hubSenders}
+            </td>
 
-                <td class="score">
-                    ${alert.risk_score}
-                </td>
+            <td class="score">
+                ${riskScore}
+            </td>
 
+            <td>
+                ${badge(severity)}
+            </td>
 
-                <td>
-                    ${badge(
-                        alert.risk_category
-                    )}
-                </td>
+        `;
 
-            `;
+        table.appendChild(row);
 
-
-            table.appendChild(
-                row
-            );
-
-        }
-    );
+    });
 
 }
-
-
 // ==========================================
 // SEARCH ALERTS
 // ==========================================
@@ -2275,6 +2261,8 @@ async function loadRiskAccounts() {
 function createRiskChart(
     counts
 ) {
+    console.log("Risk chart counts:", counts);
+
 
     if (riskChart) {
 
@@ -2335,6 +2323,30 @@ function createRiskChart(
                     responsive: true,
 
                     maintainAspectRatio: false,
+                    scales: {
+
+    y: {
+        beginAtZero: true,
+        suggestedMax: 70,
+        ticks: {
+            color: "#94a3b8",
+            precision: 0
+        },
+        grid: {
+            color: "rgba(148,163,184,.1)"
+        }
+    },
+
+    x: {
+        ticks: {
+            color: "#94a3b8"
+        },
+        grid: {
+            display: false
+        }
+    }
+
+},
 
                     plugins: {
 
@@ -3792,6 +3804,8 @@ async function showAccountDetails(
                             <th>
                                 Transaction
                             </th>
+                            <th>
+                                Sender
 
                             <th>
                                 Receiver
@@ -3825,27 +3839,39 @@ async function showAccountDetails(
                                 transaction => `
 
                                     <tr>
-
                                         <td>
-                                            ${transaction.transaction_id}
-                                        </td>
+    ${transaction.transaction_id}
+</td>
 
-                                        <td>
+<td>
 
-                                            <button
-                                                class="account-btn"
-                                                onclick="showAccountDetails('${transaction.receiver}')"
-                                            >
-                                                ${transaction.receiver || "—"}
-                                            </button>
+    <button
+        class="account-btn"
+        onclick="showAccountDetails('${transaction.sender}')"
+    >
+        ${transaction.sender || "—"}
+    </button>
 
-                                        </td>
+</td>
 
-                                        <td>
-                                            ${formatCurrency(
-                                                transaction.amount
-                                            )}
-                                        </td>
+<td>
+
+    <button
+        class="account-btn"
+        onclick="showAccountDetails('${transaction.receiver}')"
+    >
+        ${transaction.receiver || "—"}
+    </button>
+
+</td>
+
+<td>
+    ${formatCurrency(
+        transaction.amount
+    )}
+</td>
+
+
 
                                         <td>
 
@@ -3880,7 +3906,7 @@ async function showAccountDetails(
                                 <tr>
 
                                     <td
-                                        colspan="5"
+                                        colspan="6"
                                         class="loading"
                                     >
                                         No transactions found.

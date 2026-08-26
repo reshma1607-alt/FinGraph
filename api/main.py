@@ -321,108 +321,218 @@ def alerts():
 
     if driver is None:
         return neo4j_error()
+
     query = """
-MATCH (sender:Account)-[:SENT]->(t:Transaction)-[:RECEIVED_BY]->(receiver:Account)
-WHERE coalesce(
-    t.fraud_status,
-    t.transaction_type
-) = 'FRAUD'
+    MATCH (sender:Account)-[:SENT]->(t:Transaction)-[:RECEIVED_BY]->(receiver:Account)
 
-WITH
-    coalesce(
-    sender.account_id,
-    sender.id,
-    elementId(sender)
-) AS account,
+    WHERE coalesce(
+        t.fraud_status,
+        t.transaction_type
+    ) = 'FRAUD'
 
-collect(
-    DISTINCT coalesce(
-        receiver.account_id,
-        receiver.id,
-        elementId(receiver)
-    )
-) AS receivers,
-    count(t) AS fraud_transactions,
+    WITH
+        sender,
+        receiver,
+        t
 
-    sum(
-        coalesce(t.amount, 0)
-    ) AS total_fraud_amount
+    // Count how many different fraudulent senders
+    // are connected to each receiver
+    WITH
+        receiver,
+        collect(DISTINCT sender) AS connected_senders,
+        collect(t) AS fraud_transactions_list
 
-WITH
-    account,
-    [x IN receivers WHERE x IS NOT NULL] AS receivers,
-    fraud_transactions,
-    total_fraud_amount,
+    WITH
+        receiver,
+        size(connected_senders) AS hub_senders,
+        fraud_transactions_list
 
-    (
-        total_fraud_amount
-        + (fraud_transactions * 1000)
-        + (size([x IN receivers WHERE x IS NOT NULL]) * 500)
-    ) AS raw_risk_score
+    UNWIND fraud_transactions_list AS t
 
-WITH
-    account,
-    receivers,
-    fraud_transactions,
-    total_fraud_amount,
+    WITH
+        receiver,
+        hub_senders,
+        t
 
-    CASE
-        WHEN raw_risk_score > 100000
-            THEN 100
-        WHEN raw_risk_score / 1000.0 > 100
-            THEN 100
-        ELSE round(
-            raw_risk_score / 1000.0,
-            2
-        )
-    END AS risk_score
+    // Group transactions by sender account
+    MATCH (sender:Account)-[:SENT]->(t)
 
-RETURN
-    account,
-    receivers,
-    fraud_transactions,
-    total_fraud_amount,
-    risk_score,
+    WITH
+        sender,
+        receiver,
+        hub_senders,
+        t
 
-    CASE
-        WHEN risk_score >= 80
-            THEN 'CRITICAL'
-        WHEN risk_score >= 60
-            THEN 'HIGH'
-        WHEN risk_score >= 30
-            THEN 'MEDIUM'
-        ELSE 'LOW'
-    END AS risk_category
+    WITH
+        coalesce(
+            sender.account_id,
+            sender.id,
+            elementId(sender)
+        ) AS account,
 
-ORDER BY risk_score DESC
-"""
-    
+        collect(
+            DISTINCT coalesce(
+                receiver.account_id,
+                receiver.id,
+                elementId(receiver)
+            )
+        ) AS receivers,
+
+        count(t) AS fraud_transactions,
+
+        sum(
+            coalesce(t.amount, 0)
+        ) AS total_fraud_amount,
+
+        max(hub_senders) AS max_hub_senders
+
+    WITH
+        account,
+        [x IN receivers WHERE x IS NOT NULL] AS receivers,
+        fraud_transactions,
+        total_fraud_amount,
+        max_hub_senders,
+
+        (
+            (total_fraud_amount / 1000.0)
+            + (fraud_transactions * 15)
+            + (
+                size(
+                    [x IN receivers WHERE x IS NOT NULL]
+                ) * 10
+            )
+        ) AS base_risk
+
+    WITH
+        account,
+        receivers,
+        fraud_transactions,
+        total_fraud_amount,
+        max_hub_senders,
+        base_risk,
+
+        CASE
+
+            // Very strong fraud hub
+            WHEN max_hub_senders >= 50
+                THEN 35
+
+            // Strong fraud hub
+            WHEN max_hub_senders >= 10
+                THEN 20
+
+            // Moderate fraud hub
+            WHEN max_hub_senders >= 5
+                THEN 10
+
+            ELSE 0
+
+        END AS network_risk
+
+    WITH
+        account,
+        receivers,
+        fraud_transactions,
+        total_fraud_amount,
+        max_hub_senders,
+
+        base_risk + network_risk AS raw_risk_score
+
+    WITH
+        account,
+        receivers,
+        fraud_transactions,
+        total_fraud_amount,
+        max_hub_senders,
+
+        CASE
+            WHEN raw_risk_score >= 100
+                THEN 100
+
+            ELSE round(
+                raw_risk_score,
+                2
+            )
+
+        END AS risk_score
+
+    WITH
+        account,
+        receivers,
+        fraud_transactions,
+        total_fraud_amount,
+        max_hub_senders,
+        risk_score,
+
+        CASE
+
+            WHEN risk_score >= 80
+                THEN 'CRITICAL'
+
+            WHEN risk_score >= 60
+                THEN 'HIGH'
+
+            WHEN risk_score >= 30
+                THEN 'MEDIUM'
+
+            ELSE 'LOW'
+
+        END AS risk_category
+
+    RETURN
+        account,
+        receivers,
+        fraud_transactions,
+        total_fraud_amount,
+        max_hub_senders,
+        risk_score,
+        risk_category
+
+    ORDER BY
+        risk_score DESC
+    """
 
     try:
+
         records = run_query(query)
 
         result = []
 
         for record in records:
+
             result.append({
+
                 "account":
-                    record["account"],
+                    str(record["account"]),
+
                 "receivers":
                     record["receivers"] or [],
+
                 "fraud_transactions":
                     int(
                         record["fraud_transactions"] or 0
                     ),
+
                 "total_fraud_amount":
                     safe_float(
                         record["total_fraud_amount"]
                     ),
+
+                "hub_senders":
+                    int(
+                        record["max_hub_senders"] or 0
+                    ),
+
                 "risk_score":
                     safe_float(
                         record["risk_score"]
                     ),
+
                 "risk_category":
-                    record["risk_category"]
+                    str(
+                        record["risk_category"]
+                    )
+
             })
 
         return {
@@ -431,11 +541,10 @@ ORDER BY risk_score DESC
         }
 
     except Exception as error:
+
         return {
             "error": str(error)
         }
-
-
 # ==========================================
 # RISK ACCOUNTS
 # ==========================================
@@ -615,7 +724,6 @@ def fraud_hubs():
         return {
             "error": str(error)
         }
-
 # ==========================================
 # ACCOUNT DETAILS
 # ==========================================
@@ -627,98 +735,113 @@ def account_details(account_id: str):
         return neo4j_error()
 
     query = """
-    MATCH (t:Transaction)
-
-    WHERE
-        coalesce(
-            t.sender_account,
-            t.sender
-        ) = $account_id
-
-        OR
-
-        coalesce(
-            t.receiver_account,
-            t.receiver
-        ) = $account_id
+    MATCH (sender:Account)-[:SENT]->(t:Transaction)-[:RECEIVED_BY]->(receiver:Account)
 
     WITH
-        collect(t) AS transactions
+        sender,
+        t,
+        receiver,
+
+        coalesce(
+            sender.account_id,
+            sender.id,
+            elementId(sender)
+        ) AS sender_id,
+
+        coalesce(
+            receiver.account_id,
+            receiver.id,
+            elementId(receiver)
+        ) AS receiver_id
+
+    WHERE
+        sender_id = $account_id
+        OR receiver_id = $account_id
+
+    WITH
+        t,
+        sender_id,
+        receiver_id
+
+    WITH
+        collect({
+            transaction_id:
+                coalesce(
+                    t.transaction_id,
+                    elementId(t)
+                ),
+
+            sender:
+                sender_id,
+
+            receiver:
+                receiver_id,
+
+            amount:
+                coalesce(
+                    t.amount,
+                    0
+                ),
+
+            fraud_status:
+                coalesce(
+                    t.fraud_status,
+                    t.transaction_type,
+                    'UNKNOWN'
+                ),
+
+            fraud_pattern:
+                coalesce(
+                    t.fraud_pattern,
+                    'Unknown'
+                )
+        }) AS transaction_details
 
     RETURN
-        size(transactions)
+        size(transaction_details)
             AS total_transactions,
 
         size([
-            x IN transactions
-            WHERE coalesce(
-                x.fraud_status,
-                x.transaction_type
-            ) = 'FRAUD'
+            x IN transaction_details
+            WHERE x.fraud_status = 'FRAUD'
         ])
             AS fraud_transactions,
 
         reduce(
             total = 0.0,
-            x IN transactions |
+            x IN transaction_details |
+
             total +
+
             CASE
-                WHEN coalesce(
-                    x.fraud_status,
-                    x.transaction_type
-                ) = 'FRAUD'
-                THEN coalesce(x.amount, 0)
+                WHEN x.fraud_status = 'FRAUD'
+                THEN x.amount
                 ELSE 0
             END
         )
             AS total_fraud_amount,
 
-        [
-            x IN transactions |
-            {
-                transaction_id:
-                    coalesce(
-                        x.transaction_id,
-                        elementId(x)
-                    ),
-
-                receiver:
-                    coalesce(
-                        x.receiver_account,
-                        x.receiver,
-                        'Unknown'
-                    ),
-
-                amount:
-                    coalesce(x.amount, 0),
-
-                fraud_status:
-                    coalesce(
-                        x.fraud_status,
-                        x.transaction_type,
-                        'UNKNOWN'
-                    ),
-
-                fraud_pattern:
-                    coalesce(
-                        x.fraud_pattern,
-                        'Unknown'
-                    )
-            }
-        ][0..50]
+        transaction_details[0..50]
             AS transaction_details
     """
 
     try:
+
         records = run_query(
             query,
-            {"account_id": account_id}
+            {
+                "account_id": account_id
+            }
         )
 
         if not records:
+
             return {
-                "error":
-                    "Account not found"
+                "account": account_id,
+                "total_transactions": 0,
+                "fraud_transactions": 0,
+                "total_fraud_amount": 0,
+                "transactions": []
             }
 
         record = records[0]
@@ -726,49 +849,78 @@ def account_details(account_id: str):
         transactions = []
 
         for item in (
-            record["transaction_details"]
-            or []
+            record["transaction_details"] or []
         ):
+
             transactions.append({
+
                 "transaction_id":
-                    item["transaction_id"],
+                    str(
+                        item["transaction_id"]
+                    ),
+
+                "sender":
+                    str(
+                        item["sender"]
+                    ),
+
                 "receiver":
-                    item["receiver"],
+                    str(
+                        item["receiver"]
+                    ),
+
                 "amount":
-                    safe_float(item["amount"]),
+                    safe_float(
+                        item["amount"]
+                    ),
+
                 "fraud_status":
-                    item["fraud_status"],
+                    str(
+                        item["fraud_status"]
+                    ),
+
                 "fraud_pattern":
-                    item["fraud_pattern"]
+                    str(
+                        item["fraud_pattern"]
+                    )
+
             })
 
         return {
+
             "account":
                 account_id,
+
             "total_transactions":
                 int(
-                    record["total_transactions"]
-                    or 0
+                    record[
+                        "total_transactions"
+                    ] or 0
                 ),
+
             "fraud_transactions":
                 int(
-                    record["fraud_transactions"]
-                    or 0
+                    record[
+                        "fraud_transactions"
+                    ] or 0
                 ),
+
             "total_fraud_amount":
                 safe_float(
-                    record["total_fraud_amount"]
+                    record[
+                        "total_fraud_amount"
+                    ]
                 ),
+
             "transactions":
                 transactions
         }
 
     except Exception as error:
+
         return {
             "error": str(error)
         }
-
-
 # ==========================================
 # FRAUD PATTERN ANALYSIS
 # ==========================================
