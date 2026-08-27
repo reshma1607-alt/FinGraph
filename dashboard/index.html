@@ -23,6 +23,7 @@
 </title>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/vis-network/standalone/umd/vis-network.min.js"></script>
 
 <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
 
@@ -1448,6 +1449,67 @@ Loading alerts...
 </div>
 
 </section>
+<!-- =================================
+     FRAUD HUBS
+================================= -->
+
+<section class="section">
+
+    <div class="section-header">
+
+        <div class="section-title">
+
+            <h3>
+                🕸 Fraud Hubs
+            </h3>
+
+            <span>
+                Suspicious receiving accounts
+            </span>
+
+        </div>
+
+    </div>
+
+
+    <div class="table-wrapper">
+
+        <table>
+
+            <thead>
+
+                <tr>
+
+                    <th>Fraud Hub</th>
+                    <th>Unique Senders</th>
+                    <th>Fraud Transactions</th>
+                    <th>Total Fraud Amount</th>
+
+                </tr>
+
+            </thead>
+
+
+            <tbody id="hubTable">
+
+                <tr>
+
+                    <td
+                        colspan="4"
+                        class="loading"
+                    >
+                        Loading...
+                    </td>
+
+                </tr>
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</section>
 
 
 <!-- =================================
@@ -1515,68 +1577,44 @@ Loading...
 
 
 <!-- =================================
-     FRAUD HUBS
+     FRAUD NETWORK
 ================================= -->
 
 <section class="section">
 
-<div class="section-header">
+    <div class="section-header">
 
-<div class="section-title">
+        <div class="section-title">
 
-<h3>
-🕸 Fraud Hubs
-</h3>
+            <h3>
+                🕸️ Fraud Network
+            </h3>
 
-<span>
-Suspicious receiving accounts
-</span>
+            <span>
+                Visual representation of suspicious account relationships
+            </span>
 
-</div>
+        </div>
 
-</div>
+    </div>
 
+    <div
+        id="fraudNetwork"
+        style="
+            height:500px;
+            position:relative;
+            overflow:hidden;
+            border-radius:12px;
+        "
+    >
 
-<div class="table-wrapper">
+        <div class="loading">
+            Loading fraud network...
+        </div>
 
-<table>
-
-<thead>
-
-<tr>
-
-<th>Fraud Hub</th>
-<th>Unique Senders</th>
-<th>Fraud Transactions</th>
-<th>Total Fraud Amount</th>
-
-</tr>
-
-</thead>
-
-
-<tbody id="hubTable">
-
-<tr>
-
-<td
-    colspan="4"
-    class="loading"
->
-Loading...
-</td>
-
-</tr>
-
-</tbody>
-
-</table>
-
-</div>
+    </div>
 
 </section>
-
-
 <!-- =================================
      FRAUD TRANSACTIONS
 ================================= -->
@@ -4069,6 +4107,199 @@ async function loadDashboard() {
 
         dot.style.boxShadow =
             "0 0 12px #ef4444";
+
+    }
+
+}
+// ==========================================
+// FRAUD NETWORK
+// ==========================================
+
+async function loadFraudNetwork() {
+
+    const container =
+        document.getElementById(
+            "fraudNetwork"
+        );
+
+    if (!container) {
+        return;
+    }
+
+    try {
+
+        const response =
+            await fetch(
+                `${API}/fraud-network`
+            );
+
+        if (!response.ok) {
+
+            throw new Error(
+                "Fraud Network API failed"
+            );
+
+        }
+
+        const data =
+            await response.json();
+
+        if (data.error) {
+
+            throw new Error(
+                data.error
+            );
+
+        }
+
+        const nodes =
+            new vis.DataSet(
+                data.nodes.map(
+                    node => ({
+
+                        id: node.id,
+
+                        label: node.label,
+
+                        shape: "dot",
+
+                        size:
+                            node.type === "HUB"
+                                ? 30
+                                : 18
+
+                    })
+                )
+            );
+
+
+        const edges =
+            new vis.DataSet(
+                data.edges.map(
+                    edge => ({
+
+                        from: edge.from,
+
+                        to: edge.to,
+
+                        arrows: "to",
+
+                        label:
+                            `₹${Number(
+                                edge.amount
+                            ).toLocaleString("en-IN")}`,
+
+                        title:
+                            `Pattern: ${edge.pattern}
+Amount: ₹${Number(
+                                edge.amount
+                            ).toLocaleString("en-IN")}`
+
+                    })
+                )
+            );
+
+
+        const networkData = {
+
+            nodes: nodes,
+
+            edges: edges
+
+        };
+
+
+        const options = {
+
+            nodes: {
+
+                font: {
+
+                    color: "#ffffff",
+
+                    size: 14
+
+                },
+
+                borderWidth: 2
+
+            },
+
+
+            edges: {
+
+                width: 1.5,
+
+                smooth: true,
+
+                font: {
+
+                    color: "#94a3b8",
+
+                    size: 10
+
+                }
+
+            },
+
+
+            physics: {
+
+                enabled: true,
+
+                stabilization: {
+
+                    iterations: 200
+
+                }
+
+            },
+
+
+            interaction: {
+
+                hover: true,
+
+                navigationButtons: true,
+
+                keyboard: true
+
+            }
+
+        };
+
+
+        container.innerHTML = "";
+
+
+        new vis.Network(
+
+            container,
+
+            networkData,
+
+            options
+
+        );
+
+
+    } catch (error) {
+
+        console.error(
+            "Fraud Network error:",
+            error
+        );
+
+
+        container.innerHTML = `
+
+            <div class="loading">
+
+                Unable to load fraud network.
+
+            </div>
+
+        `;
 
     }
 

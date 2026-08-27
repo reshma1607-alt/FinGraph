@@ -922,6 +922,90 @@ def account_details(account_id: str):
             "error": str(error)
         }
 # ==========================================
+# FRAUD NETWORK
+# ==========================================
+
+@app.get("/fraud-network")
+def fraud_network():
+
+    if driver is None:
+        return neo4j_error()
+
+    query = """
+    MATCH (sender:Account)-[:SENT]->(t:Transaction)-[:RECEIVED_BY]->(receiver:Account)
+
+    WHERE coalesce(
+        t.fraud_status,
+        t.transaction_type
+    ) = 'FRAUD'
+
+    RETURN
+        coalesce(
+            sender.account_id,
+            sender.id,
+            elementId(sender)
+        ) AS sender,
+
+        coalesce(
+            receiver.account_id,
+            receiver.id,
+            elementId(receiver)
+        ) AS receiver,
+
+        coalesce(t.amount, 0) AS amount,
+
+        coalesce(
+            t.fraud_pattern,
+            'UNKNOWN'
+        ) AS pattern
+    """
+
+    try:
+
+        records = run_query(query)
+
+        nodes = {}
+        edges = []
+
+        for record in records:
+
+            sender = record["sender"]
+            receiver = record["receiver"]
+
+            if sender not in nodes:
+                nodes[sender] = {
+                    "id": sender,
+                    "label": sender,
+                    "type": "ACCOUNT"
+                }
+
+            if receiver not in nodes:
+                nodes[receiver] = {
+                    "id": receiver,
+                    "label": receiver,
+                    "type": "HUB"
+                }
+
+            edges.append({
+                "from": sender,
+                "to": receiver,
+                "amount": safe_float(
+                    record["amount"]
+                ),
+                "pattern": record["pattern"]
+            })
+
+        return {
+            "nodes": list(nodes.values()),
+            "edges": edges
+        }
+
+    except Exception as error:
+
+        return {
+            "error": str(error)
+        }
+# ==========================================
 # FRAUD PATTERN ANALYSIS
 # ==========================================
 
