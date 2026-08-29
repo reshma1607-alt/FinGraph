@@ -1337,14 +1337,11 @@ Suspicious account and transaction relationships
     style="
         position:absolute;
         inset:0;
-        display:flex;
+        display:none;
         align-items:center;
         justify-content:center;
     "
 >
-Loading fraud network...
-</div>
-
 
 <div class="network-legend">
 
@@ -1576,45 +1573,6 @@ Loading...
 </section>
 
 
-<!-- =================================
-     FRAUD NETWORK
-================================= -->
-
-<section class="section">
-
-    <div class="section-header">
-
-        <div class="section-title">
-
-            <h3>
-                🕸️ Fraud Network
-            </h3>
-
-            <span>
-                Visual representation of suspicious account relationships
-            </span>
-
-        </div>
-
-    </div>
-
-    <div
-        id="fraudNetwork"
-        style="
-            height:500px;
-            position:relative;
-            overflow:hidden;
-            border-radius:12px;
-        "
-    >
-
-        <div class="loading">
-            Loading fraud network...
-        </div>
-
-    </div>
-
-</section>
 <!-- =================================
      FRAUD TRANSACTIONS
 ================================= -->
@@ -3446,6 +3404,7 @@ async function loadFraudNetwork() {
                 style="
                     height:100%;
                     display:flex;
+
                     align-items:center;
                     justify-content:center;
                 "
