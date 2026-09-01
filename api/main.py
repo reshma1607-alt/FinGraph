@@ -3,6 +3,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from neo4j import GraphDatabase
 import os
 from typing import Optional
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # ==========================================
 # FINGRAPH - FRAUD INTELLIGENCE BACKEND
@@ -555,7 +558,7 @@ def risk_accounts():
     if driver is None:
         return neo4j_error()
 
-    query = """
+    query ="""
 MATCH (account:Account)-[:SENT]->(t:Transaction)
 
 WHERE coalesce(
@@ -566,10 +569,7 @@ WHERE coalesce(
 WITH
     account.id AS account,
     count(t) AS fraud_transactions,
-
-    sum(
-        coalesce(t.amount, 0)
-    ) AS total_fraud_amount
+    sum(coalesce(t.amount, 0)) AS total_fraud_amount
 
 WITH
     account,
@@ -577,16 +577,14 @@ WITH
     total_fraud_amount,
 
     (
-        fraud_transactions * 10
+        fraud_transactions * 20
         +
         CASE
-            WHEN total_fraud_amount >= 100000
-                THEN 50
-            WHEN total_fraud_amount >= 50000
-                THEN 30
-            WHEN total_fraud_amount >= 10000
-                THEN 15
-            ELSE 5
+            WHEN total_fraud_amount >= 100000 THEN 60
+            WHEN total_fraud_amount >= 50000 THEN 45
+            WHEN total_fraud_amount >= 10000 THEN 30
+            WHEN total_fraud_amount >= 5000 THEN 20
+            ELSE 10
         END
     ) AS raw_score
 
@@ -596,8 +594,7 @@ WITH
     total_fraud_amount,
 
     CASE
-        WHEN raw_score > 100
-            THEN 100
+        WHEN raw_score > 100 THEN 100
         ELSE raw_score
     END AS risk_score
 
@@ -608,18 +605,14 @@ RETURN
     risk_score,
 
     CASE
-        WHEN risk_score >= 80
-            THEN 'CRITICAL'
-        WHEN risk_score >= 60
-            THEN 'HIGH'
-        WHEN risk_score >= 30
-            THEN 'MEDIUM'
+        WHEN risk_score >= 80 THEN 'CRITICAL'
+        WHEN risk_score >= 60 THEN 'HIGH'
+        WHEN risk_score >= 30 THEN 'MEDIUM'
         ELSE 'LOW'
     END AS risk_category
 
 ORDER BY risk_score DESC
 """
-
     try:
         records = run_query(query)
 
