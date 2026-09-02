@@ -1063,8 +1063,15 @@ def fraud_patterns():
         }
 
     except Exception as error:
+
+        print(
+            "Fraud Pattern API Error:",
+            error
+        )
+
         return {
-            "error": str(error)
+            "patterns": [],
+            "error": "Unable to load fraud pattern analysis"
         }
 
 
